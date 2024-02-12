@@ -4,6 +4,7 @@
 #include <iostream>
 #include <chrono>
 #include <omp.h>
+#include "../include/conjugate_gradients.hpp"
 
 bool read_matrix_from_file(const char *filename, double **matrix_out, size_t *num_rows_out, size_t *num_cols_out)
 {

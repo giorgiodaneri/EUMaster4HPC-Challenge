@@ -19,7 +19,8 @@ add_compile_options(-O3 -march=native -I/include)
 
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
-set(OPENMP_FLAGS "-fopenmp")
+set(OPENMP_FLAGS "-qopenmp")
+set(OPENMP_FLAGS "-qopenmp-simd")
 endif()
 
 # Project declaration
@@ -27,14 +28,14 @@ project(conjugate-gradient VERSION 1.0.0 DESCRIPTION "Accelerated version of CG 
 
 # Library files
 add_library(conjugate-gradient STATIC
-    src/conjugate_gradients.cpp
+    include/conjugate_gradients.hpp
 )
 
 # Version property
 set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
 
 add_executable(conjugateGradient
-conjugate_gradients.cpp
+src/conjugate_gradients
 ${HEADER_FILES}
 )
 
