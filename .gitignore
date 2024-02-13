@@ -1,4 +1,6 @@
 **/io/
+**/test/
+**/profilerData/
 .vscode/
 *.o
 slurm*
