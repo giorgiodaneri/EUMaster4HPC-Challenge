@@ -1,3 +1,4 @@
+# Please follow the steps for running the code on MeluXina
 
 # Conjugate gradient method
 
@@ -10,43 +11,76 @@ Hello, I am John Doe, and I am a student on the University of Science. This is m
 It is a program which solves a system of equations using the conjugate gradient method. It is an iterative solver, which needs only matrix-vector multiplications and some vector operations to find a solution. To find more information about the algorithm, read your notes from past Linear algebra classes, or see e.g. [this Wikipedia page](https://en.wikipedia.org/wiki/Conjugate_gradient_method).
 
 
-
 ## Description of the project
 
 The main program in this project is `conjugate_gradients`, which solves the system. It loads and input dense matrix in row-major format and a right-hand-side from given binary files, performs the conjugate gradient iterations until convergence, and then writes the found solution to a given output binary file. A symmetric positive definite matrix and a right-hand-side can be generated using the `random_spd_system.sh` script and program.
 
-To make the program work, I need to execute this command first
-```
-module load GCC/13.2.0
-```
-
-Create a directory for the input and output files
-```
-mkdir io
+Inorder to test your code on MeluXina, please use the interactive node (for quick checking)
+``` bash
+salloc -A p200301 --res cpudev -q dev -N 1 -t 00:30:00
 ```
 
-To compile the program, I use
-```
-g++ -g -O2 src/conjugate_gradients.cpp -o conjugate_gradients
+First of all you need to load the modules necessary for program compilation and execution
+``` bash
+module load intel OpenMPI CMake
 ```
 
-To generate a random SPD system of 10000 equations and unknowns, use e.g.
-```
+Then generate a random SPD system of n equations and unknowns (e.g. 10000):
+``` bash
 ./random_spd_system.sh 10000 io/matrix.bin io/rhs.bin
 ```
 
-To then solve the system, use
+Create a directory for the input and output files
+
+``` bash
+mkdir io
 ```
-./conjugate_gradients io/matrix.bin io/rhs.bin io/sol.bin
+
+To compile the program, head over to the [test folder](/conjugate_gradients-main/test/) and create a new directory:
+
+``` bash
+mkdir build
+cd build
 ```
-It takes almost a minute to run this program.
+Then compile with:
 
+``` bash
+cmake ..
+make
+# if you want to make compilation faster, use -j flag followed by the number of files to compile
+# e.g.make -j 2
+```
 
+Then head back to [main folder](/conjugate_gradients-main/) and configure the parameters in the **runCG.sh** slurm file, particularly the --cpus-per-task parameter, which is the number of openMP threads.
 
-## Task
+``` sh
+#!/bin/bash -l
+#SBATCH --cpus-per-task=32                 # CORES per task
+#SBATCH --qos=default                      # SLURM qos
+#SBATCH --nodes=1                          # number of nodes
+#SBATCH --ntasks=1                         # number of tasks
+#SBATCH --ntasks-per-node=1                # number of tasks per node
+#SBATCH --time=00:15:00                    # time (HH:MM:SS)
+#SBATCH --partition=cpu                    # partition
+#SBATCH --account=p200301                  # project account<200b>
+#iNumber of OpenMP threads
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+srun --cpus-per-task=$SLURM_CPUS_PER_TASK ./conjugate_gradients
+```
+Finally, launch the job with:
 
-Unfortunately, my programming teacher was not happy with this project. He said that the conjugate gradient solver is very slow. But I have no idea how to make it faster.
+``` bash
+sbatch runCG.sh
+```
 
-__Will you help me make the program as fast as possible?__
+You can check the job status with 
 
-You can modify my code as much as you like. But the main functionality of the program has to stay the same - solve a system of equations using the conjugate gradient method.
+``` bash
+watch squeue --me
+```
+
+Once the job has completed the execution, check the results with
+
+``` bash
+cat slurm-file-id
+```
