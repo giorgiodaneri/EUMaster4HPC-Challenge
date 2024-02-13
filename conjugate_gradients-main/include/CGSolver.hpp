@@ -29,10 +29,11 @@ public:
     double *getA() {return A_;}
     double *getB() {return b_;}
     double *getX() {return x_;}
+    size_t getSize() {return size_;}
     int getMaxIter() {return max_iter_;}
-    double getRelErr();
-    void solve(const double *A, const double *b, double *x, size_t size, int max_iters, double rel_error);
-    void solveOmp(const double *A, const double *b, double *x, size_t size, int max_iters, double rel_error);
+    double getRelErr() {return tol_;}
+    void solve();
+    void solveOmp();
     
 protected:
     double dot(const double *x, const double *y, size_t size);

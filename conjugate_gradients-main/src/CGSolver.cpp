@@ -67,9 +67,16 @@ void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
     }
 }
 
-void CGSolver::solve(const double *A, const double *b, double *x, size_t size, int max_iters, double rel_error)
+void CGSolver::solve()
 {
     using namespace std::chrono;
+
+    double *A = getA();
+    double *b = getB();
+    double *x = getX();
+    size_t size = getSize();
+    int max_iters = getMaxIter();
+    double rel_error = getRelErr();
 
     double alpha, beta, bb, rr, rr_new;
     // residual
@@ -150,9 +157,16 @@ void CGSolver::solve(const double *A, const double *b, double *x, size_t size, i
     }
 }
 
-void CGSolver::solveOmp(const double *A, const double *b, double *x, size_t size, int max_iters, double rel_error)
+void CGSolver::solveOmp()
 {
     using namespace std::chrono;
+
+    double *A = getA();
+    double *b = getB();
+    double *x = getX();
+    size_t size = getSize();
+    int max_iters = getMaxIter();
+    double rel_error = getRelErr();
 
     double alpha, beta, bb, rr, rr_new;
     // residual
