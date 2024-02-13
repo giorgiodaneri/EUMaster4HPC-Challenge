@@ -1,5 +1,5 @@
-#ifndef CONJUGATE_GRADIENTS
-#define CONJUGATE_GRADIENTS
+#ifndef CGSOLVER
+#define CGSOLVER
 
 #include <cstdio>
 #include <cstdlib>
@@ -7,10 +7,10 @@
 #include <iostream>
 #include <omp.h>
 
-class conjugateGradients
+class CGSolver
 {
 public:
-    conjugateGradients(double *A, double *b, double *x, size_t size, int maxIterations, double tolerance) : 
+    CGSolver(double *A, double *b, double *x, size_t size, int maxIterations, double tolerance) : 
     A_(A), 
     b_(b), 
     x_(x), 
@@ -18,7 +18,7 @@ public:
     max_iter_(maxIterations), 
     tol_(tolerance) {}
 
-    ~conjugateGradients();
+    ~CGSolver() = default;
 
     // void solve();
     // void setA(double *A) {A_ = A;}
@@ -31,6 +31,14 @@ public:
     double *getX() {return x_;}
     int getMaxIter() {return max_iter_;}
     double getRelErr();
+    void solve(const double *A, const double *b, double *x, size_t size, int max_iters, double rel_error);
+    void solveOmp(const double *A, const double *b, double *x, size_t size, int max_iters, double rel_error);
+    
+protected:
+    double dot(const double *x, const double *y, size_t size);
+    void axpby(double alpha, const double *x, double beta, double *y, size_t size);
+    void precA(const double *A, const double *x, double *Ax, size_t size);
+
 
 private:
     // system matrix A, square and spd
