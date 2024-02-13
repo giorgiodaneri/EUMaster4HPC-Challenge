@@ -55,10 +55,11 @@ void CGSolver::axpby(double alpha, const double *x, double beta, double *y, size
 
 void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
 {
-#pragma omp parallel for
+#pragma omp parallel for 
     for (size_t i = 0; i < size; i++)
     {
         double y_val = 0.0;
+#pragma omp parallel for reduction(+ : y_val)
         for (size_t j = 0; j < size; j++)
         {
             y_val += A[i * size + j] * x[j];
