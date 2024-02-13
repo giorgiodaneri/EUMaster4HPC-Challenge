@@ -15,7 +15,14 @@ message(STATUS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS)
 
-add_compile_options(-O3 -march=native -I/include)
+IF (MY_COMPILER_OPTION STREQUAL "Intel")
+  MESSAGE(STATUS "** Compiling with Intel settings **")
+  SET(CMAKE_CXX_COMPILER "icpx")
+  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g")
+ENDIF ()
+
+add_compile_options(-I../include)
 
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
@@ -26,31 +33,25 @@ endif()
 # Project declaration
 project(conjugate-gradient VERSION 1.0.0 DESCRIPTION "Accelerated version of CG iterative method")
 
+include_directories(../include)
+
 # Library files
 add_library(conjugate-gradient STATIC
-    include/conjugate_gradients.hpp
+    ../src/CGSolver.cpp
 )
 
 # Version property
 set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
 
-add_executable(conjugateGradient
-src/conjugate_gradients
+add_executable(mainOmp
+mainOmp.cpp
 ${HEADER_FILES}
 )
 
 # Include directory
-target_include_directories(conjugate-gradient PRIVATE include)
-target_include_directories(conjugateGradient PRIVATE 
-    include/
-)
+target_include_directories(conjugate-gradient PRIVATE ../include)
+target_include_directories(mainOmp PRIVATE ../include)
 
 # target_link_libraries
-target_link_libraries(conjugateGradient OpenMP::OpenMP_CXX)
 target_link_libraries(conjugate-gradient OpenMP::OpenMP_CXX)
-
-
-
-
-
-
+target_link_libraries(mainOmp conjugate-gradient OpenMP::OpenMP_CXX)

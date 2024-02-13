@@ -148,7 +148,6 @@ int main(int argc, char **argv)
     double *sol = new double[size];
     CGSolver cg(matrix, rhs, sol, size, max_iters, rel_error);
     cg.solveOmp();
-    // conjugate_gradients(matrix, rhs, sol, size, max_iters, rel_error);
     printf("Done\n");
     printf("\n");
 
