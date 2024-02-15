@@ -7,6 +7,7 @@
 #include "../include/CGSolver.hpp"
 
 // dot product between two vectors
+#pragma omp declare simd
 double CGSolver::dot(const double *x, const double *y, size_t size)
 {
     double result = 0.0;
@@ -36,37 +37,47 @@ void CGSolver::axpby(double alpha, const double *x, double beta, double *y, size
     // #pragma omp end target
 }
 
-// method to compute the new direction, which ensures global A-orthogonality property
-// void gemv(double alpha, const double *A, const double *x, double beta, double *y, size_t num_rows, size_t num_cols)
-// {
-//     // y = alpha * A * x + beta * y;
-
-//     // pragma omp parallel for collapse(2)
-//     for (size_t r = 0; r < num_rows; r++)
-//     {
-//         double y_val = 0.0;
-//         for (size_t c = 0; c < num_cols; c++)
-//         {
-//             y_val += alpha * A[r * num_cols + c] * x[c];
-//         }
-//         y[r] = beta * y[r] + y_val;
-//     }
-// }
-
+// TASK VERSION
 void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
 {
-#pragma omp parallel for 
-    for (size_t i = 0; i < size; i++)
+// #pragma omp parallel for
+#pragma omp parallel
     {
-        double y_val = 0.0;
-#pragma omp parallel for reduction(+ : y_val)
-        for (size_t j = 0; j < size; j++)
+
+#pragma omp single nowait
         {
-            y_val += A[i * size + j] * x[j];
+
+#pragma omp taskloop nogroup
+            for (size_t i = 0; i < size; i++)
+            {
+                double y_val = 0.0;
+                // the following pragma is totally useless, why?
+#pragma omp simd reduction(+ : y_val)
+                for (size_t j = 0; j < size; j++)
+                {
+                    y_val += A[i * size + j] * x[j];
+                }
+                Ax[i] = y_val;
+            }
         }
-        Ax[i] = y_val;
     }
 }
+
+// PARALLEL LOOPS VERSION
+// void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
+// {
+// #pragma omp parallel for
+//     for (size_t i = 0; i < size; i++)
+//     {
+//         double y_val = 0.0;
+// #pragma omp parallel for simd reduction(+ : y_val)
+//         for (size_t j = 0; j < size; j++)
+//         {
+//             y_val += A[i * size + j] * x[j];
+//         }
+//         Ax[i] = y_val;
+//     }
+// }
 
 void CGSolver::solve()
 {
