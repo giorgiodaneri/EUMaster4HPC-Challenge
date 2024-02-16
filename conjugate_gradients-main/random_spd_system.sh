@@ -14,6 +14,8 @@ FLAGS="-I${MKLROOT}/include"
 
 icpx -O2 ${FLAGS} src/${PROGRAM}.cpp -o ${PROGRAM} $LINKS
 
+mkdir -p io
+
 ./${PROGRAM} "$@"
 
 rm -f ${PROGRAM}
