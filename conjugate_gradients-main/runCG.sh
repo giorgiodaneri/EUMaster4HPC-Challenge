@@ -9,4 +9,4 @@
 #SBATCH --account=p200301                  # project account<200b>
 #iNumber of OpenMP threads
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-srun --cpus-per-task=$SLURM_CPUS_PER_TASK ./conjugate_gradients
+srun --cpus-per-task=$SLURM_CPUS_PER_TASK ./test/testOMP/build/mainOmp

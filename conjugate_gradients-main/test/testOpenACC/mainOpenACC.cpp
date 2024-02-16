@@ -147,7 +147,7 @@ int main(int argc, char **argv)
     printf("Solving the system ...\n");
     double *sol = new double[size];
     CGSolver cg(matrix, rhs, sol, size, max_iters, rel_error);
-    cg.solveOmp();
+    cg.solveOpenACC();
     printf("Done\n");
     printf("\n");
 

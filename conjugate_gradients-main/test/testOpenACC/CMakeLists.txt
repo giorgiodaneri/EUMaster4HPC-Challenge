@@ -14,19 +14,20 @@ endif()
 message(STATUS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
 
-IF (MY_COMPILER_OPTION STREQUAL "Intel")
-  MESSAGE(STATUS "** Compiling with Intel settings **")
-  SET(CMAKE_CXX_COMPILER "icpx")
-  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-g")
-ENDIF ()
-
-# add_compile_options(-I../../include)
+# IF (MY_COMPILER_OPTION STREQUAL "Intel")
+#   MESSAGE(STATUS "** Compiling with Intel settings **")
+#   SET(CMAKE_CXX_COMPILER "icpx")
+#   SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
+#   SET(CMAKE_CXX_FLAGS_DEBUG "-g")
+# ENDIF ()
 
 find_package(OpenACC REQUIRED)
 if(OpenACC_CXX_FOUND)
-set(OPENACC_FLAGS "-fopenacc -foffload=default")
+set(OPENACC_FLAGS "-fopenacc -foffload-options=nvptx-none=-march=sm_80")
+message(STATUS "OpenACC_CXX_FLAGS: ${OpenACC_CXX_FLAGS}")
 endif()
 
 # Project declaration
@@ -42,18 +43,14 @@ add_library(conjugate-gradient STATIC
 # Version property
 set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
 
-add_executable(mainOmp
-mainOmp.cpp
+add_executable(mainOpenACC
+mainOpenACC.cpp
 ${HEADER_FILES}
 )
 
-# Include directory
-target_include_directories(conjugate-gradient PRIVATE ../../include)
-target_include_directories(mainOmp PRIVATE ../../include)
-
 target_compile_options(conjugate-gradient PRIVATE ${OPENACC_OPTIONS})
-target_compile_options(mainOmp PRIVATE ${OPENACC_OPTIONS})
+target_compile_options(mainOpenACC PRIVATE ${OPENACC_OPTIONS})
 
 # target_link_libraries
 target_link_libraries(conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
-target_link_libraries(mainOmp conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
+target_link_libraries(mainOpenACC conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
