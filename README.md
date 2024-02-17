@@ -1,1 +1,0 @@
-# EUMaster4HPC-Challenge
