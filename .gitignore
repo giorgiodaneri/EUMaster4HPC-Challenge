@@ -1,5 +1,5 @@
 **/io/
-**/test/
+**/build/
 **/profilerData/
 .vscode/
 *.o
