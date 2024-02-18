@@ -4,7 +4,6 @@
 #include <iostream>
 #include <chrono>
 #include "CGSolver.hpp"
-#include "CGSolverACC.hpp"
 
 bool read_matrix_from_file(const char *filename, double **matrix_out, size_t *num_rows_out, size_t *num_cols_out)
 {
@@ -146,9 +145,8 @@ int main(int argc, char **argv)
 
     printf("Solving the system ...\n");
     double *sol = new double[size];
-    CGSolverACC cg(matrix, rhs, sol, size, max_iters, rel_error);
-    // cg.solve();
-    cg.solve_acc();
+    CGSolver cg(matrix, rhs, sol, size, max_iters, rel_error);
+    cg.solve();
     printf("Done\n");
     printf("\n");
 
