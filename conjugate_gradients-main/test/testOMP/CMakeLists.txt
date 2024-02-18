@@ -14,15 +14,7 @@ endif()
 message(STATUS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS)
-
-IF (MY_COMPILER_OPTION STREQUAL "Intel")
-  MESSAGE(STATUS "** Compiling with Intel settings **")
-  SET(CMAKE_CXX_COMPILER "icpx")
-  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-g")
-ENDIF ()
-
-# add_compile_options(-I../../include)
+SET(CMAKE_CXX_FLAGS"-O3 -Wall -march=native")
 
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
@@ -37,6 +29,7 @@ include_directories(../../include)
 # Library files
 add_library(conjugate-gradient STATIC
     ../../src/CGSolver.cpp
+    ../../src/CGSolverOMP.cpp
 )
 
 # Version property
