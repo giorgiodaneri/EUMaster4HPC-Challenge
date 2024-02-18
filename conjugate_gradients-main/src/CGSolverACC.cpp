@@ -19,6 +19,7 @@ double CGSolverACC::dot(const double *x, const double *y, size_t size)
     return result;
 }
 
+# pragma acc routine seq
 void CGSolverACC::axpby(double alpha, const double *x, double beta, double *y, size_t size)
 {
     // y = alpha * x + beta * y
@@ -67,6 +68,9 @@ void CGSolverACC::solve()
     int num_iters;
     double result = 0.0;
 
+// #pragma acc enter data copyin(this[0 : 1])
+// #pragma acc enter data create(A[0 : size * size], Ap[0 : size], p[0 : size], r[0 : size], b[0 : size], x[0 : size], alpha, beta)
+
     // Get starting timepoint
     auto start = high_resolution_clock::now();
 
@@ -90,19 +94,19 @@ void CGSolverACC::solve()
 
     for (num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        // compute Ap ==> precA(A, p, Ap, size);
-        #pragma acc data copyin(A[0 : size * size], p[0 : size]) copyout(Ap[0 : size]) 
-        #pragma acc parallel loop gang vector
-                for (size_t i = 0; i < size; i++)
-                {
-                    double y_val = 0.0;
-                    #pragma acc loop reduction(+ : y_val)
-                    for (size_t j = 0; j < size; j++)
-                    {
-                        y_val += A[i * size + j] * p[j];
-                    }
-                    Ap[i] = y_val;
-                }
+// compute Ap ==> precA(A, p, Ap, size);
+#pragma acc data copyin(A[0 : size * size], p[0 : size]) copyout(Ap[0 : size])
+#pragma acc parallel loop gang vector
+        for (size_t i = 0; i < size; i++)
+        {
+            double y_val = 0.0;
+#pragma acc loop reduction(+ : y_val)
+            for (size_t j = 0; j < size; j++)
+            {
+                y_val += A[i * size + j] * p[j];
+            }
+            Ap[i] = y_val;
+        }
 
 // compute new alpha coefficient to guarantee optimal convergence rate ==> alpha = rr / dot(p, Ap, size);
 #pragma acc data copyin(p[0 : size], Ap[0 : size]) copyout(result)
@@ -162,6 +166,9 @@ void CGSolverACC::solve()
     auto duration = duration_cast<milliseconds>(stop - start);
     std::cout << "Time taken by function: "
               << duration.count() << " milliseconds" << std::endl;
+
+    // # pragma acc exit data delete(A[0 : size * size], Ap[0 : size], p[0 : size], r[0 : size], b[0 : size], x[0 : size], alpha, beta)
+    // # pragma acc exit data delete(this[0 : 1])
 
     delete[] r;
     delete[] p;
