@@ -17,17 +17,10 @@ message(STATUS)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
 
-# IF (MY_COMPILER_OPTION STREQUAL "Intel")
-#   MESSAGE(STATUS "** Compiling with Intel settings **")
-#   SET(CMAKE_CXX_COMPILER "icpx")
-#   SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
-#   SET(CMAKE_CXX_FLAGS_DEBUG "-g")
-# ENDIF ()
-
 find_package(OpenACC REQUIRED)
 if(OpenACC_CXX_FOUND)
 set(OPENACC_FLAGS "-fopenacc -foffload-options=nvptx-none=-march=sm_80")
-message(STATUS "OpenACC_CXX_FLAGS: ${OpenACC_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenACC_CXX_FLAGS}")
 endif()
 
 # Project declaration

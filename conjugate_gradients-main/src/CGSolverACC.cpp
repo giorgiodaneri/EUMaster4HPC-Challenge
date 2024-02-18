@@ -9,10 +9,10 @@
 double CGSolverACC::dot(const double *x, const double *y, size_t size)
 {
     double result = 0.0;
-#pragma acc data copyin(x[0 : size], y[0 : size])
-#pragma acc parallel loop vector reduction(+ : result)
+    // #pragma acc data copyin(x[0 : size], y[0 : size])
+    // #pragma acc parallel loop vector reduction(+ : result)
     for (size_t i = 0; i < size; i++)
-    {   
+    {
         result += x[i] * y[i];
     }
     return result;
@@ -20,9 +20,9 @@ double CGSolverACC::dot(const double *x, const double *y, size_t size)
 
 void CGSolverACC::axpby(double alpha, const double *x, double beta, double *y, size_t size)
 {
-// y = alpha * x + beta * y
-// #pragma acc data copyin(x[0 : size]) copyout(y[0 : size])
-#pragma acc parallel loop copyin(x[0 : size]) copyout(y[0 : size])
+    // y = alpha * x + beta * y
+    // #pragma acc data copyin(x[0 : size]) copyout(y[0 : size])
+    // #pragma acc parallel loop copyin(x[0 : size]) copyout(y[0 : size])
     for (size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
@@ -31,12 +31,12 @@ void CGSolverACC::axpby(double alpha, const double *x, double beta, double *y, s
 
 void CGSolverACC::precA(const double *A, const double *x, double *Ax, size_t size)
 {
-// #pragma acc data copyin(x[0 : size], A[0: size * size]) copyout(Ax[0 : size * size])
-// #pragma acc parallel loop copyin(x[0 : size], A[0 : size * size]) copyout(Ax[0 : size * size])
+    // #pragma acc data copyin(x[0 : size], A[0: size * size]) copyout(Ax[0 : size * size])
+    // #pragma acc parallel loop copyin(x[0 : size], A[0 : size * size]) copyout(Ax[0 : size * size])
     for (size_t i = 0; i < size; i++)
     {
         double y_val = 0.0;
-// #pragma acc loop vector reduction(+ : y_val)
+        // #pragma acc loop vector reduction(+ : y_val)
         for (size_t j = 0; j < size; j++)
         {
             y_val += A[i * size + j] * x[j];
@@ -63,12 +63,13 @@ void CGSolverACC::solve()
     double *p = new double[size];
     double *Ap = new double[size];
     int num_iters;
+    double result = 0.0;
 
     // Get starting timepoint
     auto start = high_resolution_clock::now();
 
-// #pragma acc parallel loop vector copyin(b[0 : size]) copyout(x[0 : size], r[0 : size], p[0 : size])
-    // #pragma acc parallel loop
+#pragma acc data copyin(b[0 : size]) copyout(x[0 : size], r[0 : size], p[0 : size])
+#pragma acc kernels
     for (size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -76,7 +77,13 @@ void CGSolverACC::solve()
         p[i] = b[i];
     }
 
-    bb = dot(b, b, size);
+#pragma acc data copyin(b[0 : size]) copyout(bb)
+#pragma acc parallel loop vector reduction(+ : bb)
+    for (size_t i = 0; i < size; i++)
+    {
+        bb += b[i] * b[i];
+    }
+    // bb = dot(b, b, size);
     rr = bb;
 
     for (num_iters = 1; num_iters <= max_iters; num_iters++)
@@ -86,19 +93,44 @@ void CGSolverACC::solve()
         // is this some kind of obfuscation to make the code less readable???
         // gemv(1.0, A, p, 0.0, Ap, size, size);
         precA(A, p, Ap, size);
-        // compute new alpha coefficient to guarantee optimal convergence rate
-        alpha = rr / dot(p, Ap, size);
 
-        // compute new approximate of the solution at step k+1
-        // x_k+1 = x_k + alpha_k * p_k
-        axpby(alpha, p, 1.0, x, size);
+// compute new alpha coefficient to guarantee optimal convergence rate ==> alpha = rr / dot(p, Ap, size);
+#pragma acc data copyin(p[0 : size], Ap[0 : size]) copyout(result)
+#pragma acc parallel loop vector reduction(+ : result)
+        for (size_t i = 0; i < size; i++)
+        {
+            result += p[i] * Ap[i];
+        }
+        alpha = rr / result;
+
+// compute new approximate of the solution at step k+1
+// x_k+1 = x_k + alpha_k * p_k
+#pragma acc data copyin(Ap[0 : size], alpha) copyout(x[0 : size])
+#pragma acc parallel loop vector
+        for (size_t i = 0; i < size; i++)
+        {
+            x[i] = alpha * Ap[i] + x[i];
+        }
+        // axpby(alpha, p, 1.0, x, size);
 
         // compute new residual at step k+1
         // r_k+1 = r_k - alpha_k * A * p_k
+        // #pragma acc data copyin(Ap[0 : size], alpha) copyout(r[0 : size])
+        // #pragma acc parallel loop vector
+        //         for (size_t i = 0; i < size; i++)
+        //         {
+        //             r[i] = -alpha * Ap[i] + r[i];
+        //         }
         axpby(-alpha, Ap, 1.0, r, size);
 
-        // update the 2-norm of the residual at step k+1
-        rr_new = dot(r, r, size);
+// update the 2-norm of the residual at step k+1 ==> rr_new = dot(r, r, size);
+#pragma acc data copyin(r[0 : size]) copyout(rr_new)
+#pragma acc parallel loop vector reduction(+ : rr_new)
+        for (size_t i = 0; i < size; i++)
+        {
+            rr_new += r[i] * r[i];
+        }
+
         // compute beta coefficient
         // beta_k = ||r_k+1||^2 / ||r_k||^2
         // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
@@ -109,8 +141,14 @@ void CGSolverACC::solve()
             break;
         }
 
-        // compute new direction at step k+1
-        // p_k+1 = r_k+1 + beta_k * p_k
+// compute new direction at step k+1
+// p_k+1 = r_k+1 + beta_k * p_k
+// #pragma acc data copyin(r[0 : size], beta) copyout(p[0 : size])
+// #pragma acc parallel loop vector
+//         for (size_t i = 0; i < size; i++)
+//         {
+//             p[i] = r[i] + beta * p[i];
+//         }
         axpby(1.0, r, beta, p, size);
     }
 
