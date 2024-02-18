@@ -38,7 +38,6 @@ protected:
     virtual void axpby(double alpha, const double *x, double beta, double *y, size_t size);
     virtual void precA(const double *A, const double *x, double *Ax, size_t size);
  
-private:
     // system matrix A, square and spd
     double *A_;
     // right hand side
