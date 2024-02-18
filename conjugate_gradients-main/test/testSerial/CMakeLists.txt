@@ -14,12 +14,8 @@ endif()
 message(STATUS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS)
-SET(CMAKE_CXX_FLAGS"-O3 -Wall -march=native")
-
-find_package(OpenMP REQUIRED)
-if(OpenMP_CXX_FOUND)
-set(OPENMP_FLAGS "-fopenmp -fopenmp-simd")
-endif()
+set(CMAKE_CXX_FLAGS_DEBUG "-O3 -Wall -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
 
 # Project declaration
 project(conjugate-gradient VERSION 1.0.0 DESCRIPTION "Accelerated version of CG iterative method")
@@ -29,21 +25,20 @@ include_directories(../../include)
 # Library files
 add_library(conjugate-gradient STATIC
     ../../src/CGSolver.cpp
-    ../../src/CGSolverOMP.cpp
 )
 
 # Version property
 set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
 
-add_executable(mainOmp
-mainOmp.cpp
+add_executable(main
+main.cpp
 ${HEADER_FILES}
 )
 
 # Include directory
 target_include_directories(conjugate-gradient PRIVATE ../../include)
-target_include_directories(mainOmp PRIVATE ../../include)
+target_include_directories(main PRIVATE ../../include)
 
 # target_link_libraries
-target_link_libraries(conjugate-gradient OpenMP::OpenMP_CXX ${OPENMP_FLAGS})
-target_link_libraries(mainOmp conjugate-gradient OpenMP::OpenMP_CXX ${OPENMP_FLAGS})
+target_link_libraries(conjugate-gradient)
+target_link_libraries(main conjugate-gradient)

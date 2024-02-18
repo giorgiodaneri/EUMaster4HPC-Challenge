@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
+#include <openacc.h>
 #include "CGSolver.hpp"
 #include "CGSolverACC.hpp"
 
@@ -48,6 +49,7 @@ void CGSolverACC::precA(const double *A, const double *x, double *Ax, size_t siz
 void CGSolverACC::solve()
 {
     using namespace std::chrono;
+    acc_set_device_type(acc_device_nvidia);
 
     double *A = getA();
     double *b = getB();
@@ -69,7 +71,7 @@ void CGSolverACC::solve()
     auto start = high_resolution_clock::now();
 
 #pragma acc data copyin(b[0 : size]) copyout(x[0 : size], r[0 : size], p[0 : size])
-#pragma acc kernels
+#pragma acc parallel loop gang vector
     for (size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -78,7 +80,7 @@ void CGSolverACC::solve()
     }
 
 #pragma acc data copyin(b[0 : size]) copyout(bb)
-#pragma acc parallel loop vector reduction(+ : bb)
+#pragma acc parallel loop gang vector reduction(+ : bb)
     for (size_t i = 0; i < size; i++)
     {
         bb += b[i] * b[i];
@@ -88,11 +90,19 @@ void CGSolverACC::solve()
 
     for (num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        // brainy way to compute A * p, need it for residual update and computation of alpha
-        // writes result directly in Ap
-        // is this some kind of obfuscation to make the code less readable???
-        // gemv(1.0, A, p, 0.0, Ap, size, size);
-        precA(A, p, Ap, size);
+        // compute Ap ==> precA(A, p, Ap, size);
+        #pragma acc data copyin(A[0 : size * size], p[0 : size]) copyout(Ap[0 : size]) 
+        #pragma acc parallel loop gang vector
+                for (size_t i = 0; i < size; i++)
+                {
+                    double y_val = 0.0;
+                    #pragma acc loop reduction(+ : y_val)
+                    for (size_t j = 0; j < size; j++)
+                    {
+                        y_val += A[i * size + j] * p[j];
+                    }
+                    Ap[i] = y_val;
+                }
 
 // compute new alpha coefficient to guarantee optimal convergence rate ==> alpha = rr / dot(p, Ap, size);
 #pragma acc data copyin(p[0 : size], Ap[0 : size]) copyout(result)
@@ -105,22 +115,15 @@ void CGSolverACC::solve()
 
 // compute new approximate of the solution at step k+1
 // x_k+1 = x_k + alpha_k * p_k
-#pragma acc data copyin(Ap[0 : size], alpha) copyout(x[0 : size])
+#pragma acc data copyin(p[0 : size], alpha) copyout(x[0 : size])
 #pragma acc parallel loop vector
         for (size_t i = 0; i < size; i++)
         {
-            x[i] = alpha * Ap[i] + x[i];
+            x[i] = alpha * p[i] + x[i];
+            // removed a minus here, gained 10x performance. How is it possible????
+            // r[i] = alpha * Ap[i] + r[i];
         }
         // axpby(alpha, p, 1.0, x, size);
-
-        // compute new residual at step k+1
-        // r_k+1 = r_k - alpha_k * A * p_k
-        // #pragma acc data copyin(Ap[0 : size], alpha) copyout(r[0 : size])
-        // #pragma acc parallel loop vector
-        //         for (size_t i = 0; i < size; i++)
-        //         {
-        //             r[i] = -alpha * Ap[i] + r[i];
-        //         }
         axpby(-alpha, Ap, 1.0, r, size);
 
 // update the 2-norm of the residual at step k+1 ==> rr_new = dot(r, r, size);
@@ -141,14 +144,14 @@ void CGSolverACC::solve()
             break;
         }
 
-// compute new direction at step k+1
-// p_k+1 = r_k+1 + beta_k * p_k
-// #pragma acc data copyin(r[0 : size], beta) copyout(p[0 : size])
-// #pragma acc parallel loop vector
-//         for (size_t i = 0; i < size; i++)
-//         {
-//             p[i] = r[i] + beta * p[i];
-//         }
+        // compute new direction at step k+1
+        // p_k+1 = r_k+1 + beta_k * p_k
+        // #pragma acc data copyin(r[0 : size], beta) copyout(p[0 : size])
+        // #pragma acc parallel loop vector
+        //         for (size_t i = 0; i < size; i++)
+        //         {
+        //             p[i] = r[i] + beta * p[i];
+        //         }
         axpby(1.0, r, beta, p, size);
     }
 
