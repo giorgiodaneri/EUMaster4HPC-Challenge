@@ -3,11 +3,13 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
-#include "../include/CGSolver.hpp"
+#include <omp.h>
+#include "CGSolver.hpp"
+#include "CGSolverOMP.hpp"
 
 // dot product between two vectors
 #pragma omp declare simd
-double CGSolver::dot(const double *x, const double *y, size_t size)
+double CGSolverOMP::dot(const double *x, const double *y, size_t size)
 {
     double result = 0.0;
 // also take into account omp simd directive
@@ -20,7 +22,7 @@ double CGSolver::dot(const double *x, const double *y, size_t size)
 }
 
 #pragma omp declare simd
-void CGSolver::axpby(double alpha, const double *x, double beta, double *y, size_t size)
+void CGSolverOMP::axpby(double alpha, const double *x, double beta, double *y, size_t size)
 {
 #pragma omp parallel for simd
     for (size_t i = 0; i < size; i++)
@@ -30,7 +32,7 @@ void CGSolver::axpby(double alpha, const double *x, double beta, double *y, size
 }
 
 // TASK VERSION
-// void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
+// void CGSolverOMP::precA(const double *A, const double *x, double *Ax, size_t size)
 // {
 // // #pragma omp parallel for
 // #pragma omp parallel
@@ -56,7 +58,7 @@ void CGSolver::axpby(double alpha, const double *x, double beta, double *y, size
 // }
 
 // PARALLEL LOOPS VERSION
-void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
+void CGSolverOMP::precA(const double *A, const double *x, double *Ax, size_t size)
 {
 #pragma omp parallel for
     for (size_t i = 0; i < size; i++)
@@ -93,6 +95,7 @@ void CGSolver::solve()
     // Get starting timepoint
     auto start = high_resolution_clock::now();
 
+#pragma omp parallel for simd
     for (size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -114,13 +117,21 @@ void CGSolver::solve()
         // compute new alpha coefficient to guarantee optimal convergence rate
         alpha = rr / dot(p, Ap, size);
 
-        // compute new approximate of the solution at step k+1
-        // x_k+1 = x_k + alpha_k * p_k
-        axpby(alpha, p, 1.0, x, size);
-
-        // compute new residual at step k+1
-        // r_k+1 = r_k - alpha_k * A * p_k
-        axpby(-alpha, Ap, 1.0, r, size);
+#pragma omp parallel sections
+        {
+#pragma omp section
+            {
+                // compute new approximate of the solution at step k+1
+                // x_k+1 = x_k + alpha_k * p_k
+                axpby(alpha, p, 1.0, x, size);
+            }
+#pragma omp section
+            {
+                // compute new residual at step k+1
+                // r_k+1 = r_k - alpha_k * A * p_k
+                axpby(-alpha, Ap, 1.0, r, size);
+            }
+        }
 
         // update the 2-norm of the residual at step k+1
         rr_new = dot(r, r, size);

@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
-#include <omp.h>
 
 class CGSolver
 {
@@ -32,19 +31,13 @@ public:
     size_t getSize() {return size_;}
     int getMaxIter() {return max_iter_;}
     double getRelErr() {return tol_;}
-    void solve();
-    void solveOmp();
-    void solveOpenACC();
+    virtual void solve();
     
 protected:
-    double dot(const double *x, const double *y, size_t size);
-    void axpby(double alpha, const double *x, double beta, double *y, size_t size);
-    void precA(const double *A, const double *x, double *Ax, size_t size);
-    double dot_acc(const double *x, const double *y, size_t size);
-    void axpby_acc(double alpha, const double *x, double beta, double *y, size_t size);
-    void precA_acc(const double *A, const double *x, double *Ax, size_t size);
-
-
+    virtual double dot(const double *x, const double *y, size_t size);
+    virtual void axpby(double alpha, const double *x, double beta, double *y, size_t size);
+    virtual void precA(const double *A, const double *x, double *Ax, size_t size);
+ 
 private:
     // system matrix A, square and spd
     double *A_;

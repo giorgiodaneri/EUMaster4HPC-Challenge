@@ -37,6 +37,7 @@ include_directories(../../include)
 # Library files
 add_library(conjugate-gradient STATIC
     ../../src/CGSolver.cpp
+    ../../src/CGSolverOMP.cpp
 )
 
 # Version property

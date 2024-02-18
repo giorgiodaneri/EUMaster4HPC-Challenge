@@ -3,66 +3,40 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
-#include "../include/CGSolver.hpp"
+#include "CGSolver.hpp"
+#include "CGSolverACC.hpp"
 
-// dot product between two vectors
-#pragma omp declare simd
-double CGSolver::dot(const double *x, const double *y, size_t size)
+double CGSolverACC::dot(const double *x, const double *y, size_t size)
 {
     double result = 0.0;
-// also take into account omp simd directive
-#pragma omp parallel for simd reduction(+ : result)
+#pragma acc data copyin(x[0 : size], y[0 : size])
+#pragma acc parallel loop vector reduction(+ : result)
     for (size_t i = 0; i < size; i++)
-    {
+    {   
         result += x[i] * y[i];
     }
     return result;
 }
 
-#pragma omp declare simd
-void CGSolver::axpby(double alpha, const double *x, double beta, double *y, size_t size)
+void CGSolverACC::axpby(double alpha, const double *x, double beta, double *y, size_t size)
 {
-#pragma omp parallel for simd
+// y = alpha * x + beta * y
+// #pragma acc data copyin(x[0 : size]) copyout(y[0 : size])
+#pragma acc parallel loop copyin(x[0 : size]) copyout(y[0 : size])
     for (size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
     }
 }
 
-// TASK VERSION
-// void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
-// {
-// // #pragma omp parallel for
-// #pragma omp parallel
-//     {
-
-// #pragma omp single nowait
-//         {
-
-// #pragma omp taskloop nogroup
-//             for (size_t i = 0; i < size; i++)
-//             {
-//                 double y_val = 0.0;
-//                 // the following pragma is totally useless, why?
-// #pragma omp simd reduction(+ : y_val)
-//                 for (size_t j = 0; j < size; j++)
-//                 {
-//                     y_val += A[i * size + j] * x[j];
-//                 }
-//                 Ax[i] = y_val;
-//             }
-//         }
-//     }
-// }
-
-// PARALLEL LOOPS VERSION
-void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
+void CGSolverACC::precA(const double *A, const double *x, double *Ax, size_t size)
 {
-#pragma omp parallel for
+// #pragma acc data copyin(x[0 : size], A[0: size * size]) copyout(Ax[0 : size * size])
+// #pragma acc parallel loop copyin(x[0 : size], A[0 : size * size]) copyout(Ax[0 : size * size])
     for (size_t i = 0; i < size; i++)
     {
         double y_val = 0.0;
-#pragma omp parallel for simd reduction(+ : y_val)
+// #pragma acc loop vector reduction(+ : y_val)
         for (size_t j = 0; j < size; j++)
         {
             y_val += A[i * size + j] * x[j];
@@ -71,7 +45,7 @@ void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
     }
 }
 
-void CGSolver::solve()
+void CGSolverACC::solve()
 {
     using namespace std::chrono;
 
@@ -93,6 +67,8 @@ void CGSolver::solve()
     // Get starting timepoint
     auto start = high_resolution_clock::now();
 
+// #pragma acc parallel loop vector copyin(b[0 : size]) copyout(x[0 : size], r[0 : size], p[0 : size])
+    // #pragma acc parallel loop
     for (size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -100,7 +76,6 @@ void CGSolver::solve()
         p[i] = b[i];
     }
 
-    // needed for stopping criterion
     bb = dot(b, b, size);
     rr = bb;
 
