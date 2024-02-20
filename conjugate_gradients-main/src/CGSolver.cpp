@@ -88,13 +88,14 @@ void CGSolver::solve()
         // r_k+1 = r_k - alpha_k * A * p_k
         axpby(-alpha, Ap, 1.0, r, size);
 
-        // update the 2-norm of the residual at step k+1
+        // compute the 2-norm of the residual at step k+1
         rr_new = dot(r, r, size);
         // compute beta coefficient
         // beta_k = ||r_k+1||^2 / ||r_k||^2
-        // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
         beta = rr_new / rr;
+        // update residual norm
         rr = rr_new;
+        // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
         if (std::sqrt(rr / bb) < rel_error)
         {
             break;

@@ -5,6 +5,7 @@
 #include <chrono>
 #include "CGSolver.hpp"
 #include "CGSolverCuda.hpp"
+#include "CGSolverCUDA.cu"
 
 void CGSolver::solve()
 {
@@ -35,44 +36,44 @@ void CGSolver::solve()
         p[i] = b[i];
     }
 
-    // needed for stopping criterion
-    bb = dot(b, b, size);
-    rr = bb;
+    // // needed for stopping criterion
+    // bb = dot(b, b, size);
+    // rr = bb;
 
-    for (num_iters = 1; num_iters <= max_iters; num_iters++)
-    {
-        // brainy way to compute A * p, need it for residual update and computation of alpha
-        // writes result directly in Ap
-        // is this some kind of obfuscation to make the code less readable???
-        // gemv(1.0, A, p, 0.0, Ap, size, size);
-        precA(A, p, Ap, size);
-        // compute new alpha coefficient to guarantee optimal convergence rate
-        alpha = rr / dot(p, Ap, size);
+    // for (num_iters = 1; num_iters <= max_iters; num_iters++)
+    // {
+    //     // brainy way to compute A * p, need it for residual update and computation of alpha
+    //     // writes result directly in Ap
+    //     // is this some kind of obfuscation to make the code less readable???
+    //     // gemv(1.0, A, p, 0.0, Ap, size, size);
+    //     precA(A, p, Ap, size);
+    //     // compute new alpha coefficient to guarantee optimal convergence rate
+    //     alpha = rr / dot(p, Ap, size);
 
-        // compute new approximate of the solution at step k+1
-        // x_k+1 = x_k + alpha_k * p_k
-        axpby(alpha, p, 1.0, x, size);
+    //     // compute new approximate of the solution at step k+1
+    //     // x_k+1 = x_k + alpha_k * p_k
+    //     axpby(alpha, p, 1.0, x, size);
 
-        // compute new residual at step k+1
-        // r_k+1 = r_k - alpha_k * A * p_k
-        axpby(-alpha, Ap, 1.0, r, size);
+    //     // compute new residual at step k+1
+    //     // r_k+1 = r_k - alpha_k * A * p_k
+    //     axpby(-alpha, Ap, 1.0, r, size);
 
-        // update the 2-norm of the residual at step k+1
-        rr_new = dot(r, r, size);
-        // compute beta coefficient
-        // beta_k = ||r_k+1||^2 / ||r_k||^2
-        // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
-        beta = rr_new / rr;
-        rr = rr_new;
-        if (std::sqrt(rr / bb) < rel_error)
-        {
-            break;
-        }
+    //     // update the 2-norm of the residual at step k+1
+    //     rr_new = dot(r, r, size);
+    //     // compute beta coefficient
+    //     // beta_k = ||r_k+1||^2 / ||r_k||^2
+    //     // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
+    //     beta = rr_new / rr;
+    //     rr = rr_new;
+    //     if (std::sqrt(rr / bb) < rel_error)
+    //     {
+    //         break;
+    //     }
 
-        // compute new direction at step k+1
-        // p_k+1 = r_k+1 + beta_k * p_k
-        axpby(1.0, r, beta, p, size);
-    }
+    //     // compute new direction at step k+1
+    //     // p_k+1 = r_k+1 + beta_k * p_k
+    //     axpby(1.0, r, beta, p, size);
+    // }
 
     auto stop = high_resolution_clock::now();
     // // Get duration. Substart timepoints to
