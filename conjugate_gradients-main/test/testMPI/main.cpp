@@ -118,7 +118,7 @@ void precA(int* matrix, int* vector, int* result, int num_rows, int num_col) {
 }
 
 // Function to calculate partitions of the matrix for scattering and gathering
-void calculateMatrixPartition(size_t size, int world_size, int rank,
+void calculateMatrixPartition(size_t size, int world_size,
                               int* divide_at_index, int* number_element_per_partition,
                               int* rows_per_process_array, int* row_displacements) {
 
@@ -154,7 +154,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     int* rows_per_process_array = new int[world_size]; // counts_recv for Gatherv
     int* row_displacements = new int[world_size]; // displacements for Gatherv
 
-    calculateMatrixPartition(size, world_size, rank,
+    calculateMatrixPartition(size, world_size,
                              divide_at_index, number_element_per_partition, rows_per_process_array, row_displacements);
 
     double* local_matrix = new double[number_element_per_partition[rank]];
