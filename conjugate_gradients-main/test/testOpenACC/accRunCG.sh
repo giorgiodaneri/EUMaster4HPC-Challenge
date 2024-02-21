@@ -9,4 +9,4 @@
 #SBATCH --account=p200301                  # project account
 #SBATCH --qos=default                      # SLURM qos
 
-srun ./test/testOpenACC/build/mainOpenACC
+srun ./test/testOpenACC/build/mainOpenACC ../../io/matrix.bin ../../io/rhs.bin ../../io/sol.bin

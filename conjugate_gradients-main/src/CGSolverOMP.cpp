@@ -24,7 +24,7 @@ double CGSolverOMP::dot(const double *x, const double *y, size_t size)
 #pragma omp declare simd
 void CGSolverOMP::axpby(double alpha, const double *x, double beta, double *y, size_t size)
 {
-#pragma omp parallel for simd
+#pragma omp parallel for simd 
     for (size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
@@ -58,9 +58,10 @@ void CGSolverOMP::axpby(double alpha, const double *x, double beta, double *y, s
 // }
 
 // PARALLEL LOOPS VERSION
+#pragma omp declare simd
 void CGSolverOMP::precA(const double *A, const double *x, double *Ax, size_t size)
 {
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for (size_t i = 0; i < size; i++)
     {
         double y_val = 0.0;
@@ -73,7 +74,7 @@ void CGSolverOMP::precA(const double *A, const double *x, double *Ax, size_t siz
     }
 }
 
-void CGSolver::solve()
+void CGSolverOMP::solve()
 {
     using namespace std::chrono;
 

@@ -16,9 +16,17 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS)
 SET(CMAKE_CXX_FLAGS"-O3 -Wall -march=native")
 
+IF (MY_COMPILER_OPTION STREQUAL "Intel")
+  MESSAGE(STATUS "** Compiling with Intel settings **")
+  SET(CMAKE_CXX_COMPILER "icpx")
+  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -xHost -ipo -march=native -axarch -no-prec-div -fp-model fast=2 -qopt-zmm-usage=high")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -xHost -ipo -march=native -axarch -no-prec-div -fp-model fast=2 -qopt-zmm-usage=high")
+  MESSAGE(STATUS "CMAKE_CXX_FLAGS_RELEASE: ${CMAKE_CXX_FLAGS_RELEASE}")
+ENDIF ()
+
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
-set(OPENMP_FLAGS "-fopenmp -fopenmp-simd")
+set(OPENMP_FLAGS "-qopenmp -qopenmp-simd")
 endif()
 
 # Project declaration

@@ -17,6 +17,14 @@ message(STATUS)
 set(CMAKE_CXX_FLAGS_DEBUG "-O3 -Wall -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
 
+IF (MY_COMPILER_OPTION STREQUAL "Intel")
+  MESSAGE(STATUS "** Compiling with Intel settings **")
+  SET(CMAKE_CXX_COMPILER "icpx")
+  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -xHost -ipo -march=native -axarch -no-prec-div -fp-model fast=2 -qopt-zmm-usage=high")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -xHost -ipo -march=native -axarch -no-prec-div -fp-model fast=2 -qopt-zmm-usage=high")
+  MESSAGE(STATUS "CMAKE_CXX_FLAGS_RELEASE: ${CMAKE_CXX_FLAGS_RELEASE}")
+ENDIF ()
+
 # Project declaration
 project(conjugate-gradient VERSION 1.0.0 DESCRIPTION "Accelerated version of CG iterative method")
 

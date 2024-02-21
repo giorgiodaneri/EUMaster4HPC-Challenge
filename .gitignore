@@ -1,6 +1,7 @@
 **/io/
 **/build/
-**/profilerData/
+**/profilerData*
 .vscode/
 *.o
+main*
 slurm*
