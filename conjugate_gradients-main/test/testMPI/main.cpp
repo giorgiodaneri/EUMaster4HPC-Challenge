@@ -313,7 +313,7 @@ int main(int argc, char ** argv)
     }
 
     MPI_Bcast(&size, 1, MPI_SIZE_T, 0, MPI_COMM_WORLD);
-
+    MPI_Bcast(&max_iters, 1, MPI_INT, 0, MPI_COMM_WORLD);
     conjugate_gradients(matrix, rhs, sol, size, max_iters, rel_error, world_size, rank);
 
     if(rank == 0) {
