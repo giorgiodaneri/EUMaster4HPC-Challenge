@@ -1,48 +1,43 @@
 cmake_minimum_required(VERSION 3.20)
-
-# Default to Release
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif()
+project(OpenACC_Implementation VERSION 1.0.0 DESCRIPTION "OpenACC Implementation")
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
-project(MPI_Implementation)
-
-# Compiler options
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    # Debug settings
-    add_compile_options(-g -O0 -Wall -DDEBUG)
-else()
-    # Release settings
-    add_compile_options(-O3 -Wall -march=native)
+# Set the default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
+
+# Configure flags for Debug and Release builds
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    add_definitions(-DBUILD_TYPE_DEBUG)
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall")
+else()
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
+endif()
+
 
 find_package(OpenACC REQUIRED)
 if(OpenACC_CXX_FOUND)
-    set(OPENACC_FLAGS "-fopenacc -foffload-options=nvptx-none=-march=sm_80")
-    add_compile_options(${OpenACC_CXX_FLAGS})
+    set(OPENACC_FLAGS "-fopenacc")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenACC_CXX_FLAGS} -foffload-options=nvptx-none=-march=sm_80")
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/../../include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
-# Library files
 add_library(conjugate-gradient STATIC
-        ${PROJECT_SOURCE_DIR}/../../src/CGSolver.cpp
-        ${PROJECT_SOURCE_DIR}/../../src/CGSolverMPI.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/CGSolver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../src/CGSolverACC.cpp
 )
 
-set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
+add_executable(mainOpenACC mainOpenACC.cpp)
 
-# Executable
-add_executable(mainOpenACC
-        mainOpenACC.cpp
-)
+target_include_directories(mainOpenACC PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
-target_compile_options(conjugate-gradient PRIVATE ${OPENACC_OPTIONS})
-target_compile_options(mainOpenACC PRIVATE ${OPENACC_OPTIONS})
+target_compile_options(conjugate-gradient PRIVATE ${OPENACC_FLAGS})
+target_compile_options(mainOpenACC PRIVATE ${OPENACC_FLAGS})
 
-target_link_libraries(conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
-target_link_libraries(mainOpenACC conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
 
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}, OpenACC version: ${OpenACC_VERSION}")
+target_link_libraries(conjugate-gradient PRIVATE OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
+target_link_libraries(mainOpenACC PRIVATE conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
