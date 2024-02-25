@@ -14,7 +14,7 @@ extern "C++"
 
 // vector vector multiply
 #define BLOCK_SIZE 128
-#define SIZE 10000 // TODO: handle this better, maybe pass it as a parameter to the functions
+#define SIZE 5000 // TODO: handle this better, maybe pass it as a parameter to the functions
 
 // __global__ void vecVecMult(double *a, double *b, float *c)
 // {
@@ -61,31 +61,42 @@ __global__ void matVecMult(double *A, double *x, double *y)
 }
 
 // dot product
-__global__ void dotProduct(double *a, double *b, float *c)
-{
-    __shared__ double temp[BLOCK_SIZE];
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    temp[threadIdx.x] = a[i] * b[i];
-    __syncthreads();
-    if (threadIdx.x == 0)
-    {
-        float sum = 0;
-        for (int j = 0; j < blockDim.x; j++)
-        {
-            sum += temp[j];
-        }
-        atomicAdd(c, sum);
-    }
-    // unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-    // float tmp = 0.0;
-    // if (i == 0)
-    // {
-    //     for (int i = 0; i < SIZE; i++)
-    //     {
-    //         tmp += b[i] * a[i];
-    //     }
-    //     *c = tmp;
-    // }
+// __global__ void dotProduct(double *a, double *b, float *c)
+// {
+//     __shared__ double temp[BLOCK_SIZE];
+//     int i = blockIdx.x * blockDim.x + threadIdx.x;
+//     temp[threadIdx.x] = a[i] * b[i];
+//     __syncthreads();
+//     if (threadIdx.x == 0)
+//     {
+//         float sum = 0;
+//         for (int j = 0; j < blockDim.x; j++)
+//         {
+//             sum += temp[j];
+//         }
+//         atomicAdd(c, sum);
+//     }
+//     // unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//     // float tmp = 0.0;
+//     // if (i == 0)
+//     // {
+//     //     for (int i = 0; i < SIZE; i++)
+//     //     {
+//     //         tmp += b[i] * a[i];
+//     //     }
+//     //     *c = tmp;
+//     // }
+// }
+
+__global__ void dotProduct(double* a, double* b, float* out) {
+	unsigned int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+	float tmp = 0.0;
+	if (index_x == 0) {
+		for (int i = 0; i < SIZE; i++) {
+			tmp += b[i] * a[i];
+		}
+		*out = tmp;
+	}
 }
 
 // scalar vector multiply
@@ -130,6 +141,19 @@ void axpby(double alpha, const double *x, double beta, double *y, size_t size)
     for (size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
+    }
+}
+
+void precA(const double *A, const double *x, double *Ax, size_t size)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        double y_val = 0.0;
+        for (size_t j = 0; j < size; j++)
+        {
+            y_val += A[i * size + j] * x[j];
+        }
+        Ax[i] = y_val;
     }
 }
 
@@ -328,21 +352,19 @@ void solve_try(double *A, double *b, double *x, size_t size, int maxIterations, 
 
     // copy data to device
     cudaMemcpy(d_A, A, size * size * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_p, p, size * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_Ap, Ap, size * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(d_p, p, size * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(d_Ap, Ap, size * sizeof(double), cudaMemcpyHostToDevice);
 
     // now start the CG solver iterations
     for (num_iters = 0; num_iters < maxIterations; num_iters++)
     {
-        // brainy way to compute A * p, need it for residual update and computation of alpha
-        // writes result directly in Ap
-        // is this some kind of obfuscation to make the code less readable???
-        // gemv(1.0, A, p, 0.0, Ap, size, size);
         // precA(A, p, Ap, size);
+        // compute matrix vector product
+        // first need to get latest value of p from the host and copy it to the device
         cudaMemcpy(d_p, p, size * sizeof(double), cudaMemcpyHostToDevice);
-
         matVecMult<<<matDimGrid, matDimBlock>>>(d_A, d_p, d_Ap);
-
+        // cudaDeviceSynchronize();
+        // copy value of d_Ap to Ap
         cudaMemcpy(Ap, d_Ap, size * sizeof(double), cudaMemcpyDeviceToHost);
 
         // compute new alpha coefficient to guarantee optimal convergence rate
@@ -379,7 +401,7 @@ void solve_try(double *A, double *b, double *x, size_t size, int maxIterations, 
         axpby(1.0, r, beta, p, size);
     }
 
-    printf("relative error is: %f \n", rr / bb);
+    printf("relative error is: %e \n", std::sqrt(rr / bb));
     printf("number of iterations: %d \n", num_iters);
     // free memory allocated on the device
     cudaFree(d_A);
