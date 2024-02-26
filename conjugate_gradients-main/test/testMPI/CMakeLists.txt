@@ -24,7 +24,7 @@ add_definitions(-DOMPI_SKIP_MPICXX)
 include_directories(${MPI_INCLUDE_PATH})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
-add_executable(mainMPI_OpenMP main.cpp)
+add_executable(mainMPI_OpenMP mainMPI.cpp)
 
 target_include_directories(mainMPI_OpenMP PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${MPI_INCLUDE_PATH})
 

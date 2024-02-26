@@ -105,7 +105,7 @@ void axpby(double alpha, const double *x, double beta, double *y, size_t size)
     }
 }
 
-void precA(int* matrix, int* vector, int* result, int num_rows, int num_col) {
+void precA(double* matrix, double* vector, double* result, int num_rows, int num_col) {
 #pragma omp parallel for
     for (int i = 0; i < num_rows; i++) {
         int sum = 0;
@@ -138,12 +138,6 @@ void calculateMatrixPartition(size_t size, int world_size,
         current_element_index += number_element_per_partition[cur_rank]; // Increment element index for the next process
         current_row_displacement += rows_for_this_process; // Increment row displacement for the next process
     }
-
-    // Debugging
-    cout << "Rank " << rank << " divide_at_index: " << divide_at_index[rank]
-         << ", number_element_per_partition: " << number_element_per_partition[rank]
-         << ", rows_per_process: " << rows_per_process_array[rank]
-         << ", row_displacement: " << row_displacements[rank] << endl;
 }
 
 void conjugate_gradients(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error,
@@ -157,18 +151,23 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     calculateMatrixPartition(size, world_size,
                              divide_at_index, number_element_per_partition, rows_per_process_array, row_displacements);
 
-    double* local_matrix = new double[number_element_per_partition[rank]];
-    double* local_result = new double[rows_per_process_array[rank]];
-    double* p = new double[size];
+    double* local_matrix = new double[number_element_per_partition[rank]]; // Each process has a portion of the matrix
+    double* local_result = new double[rows_per_process_array[rank]]; // To store the result of the matrix vector multiplication
+    double* p = new double[size]; // Each process has the entire vector
+    double* Ap = nullptr; // Final result of the vector matrix multiplication
+    double local_residualNorm = 0.0; // Each process will calculate the first dot product 
+    double residualNorm = 0.0; // Here the final dot product will be reduced
+    double* r = nullptr; 
+    double alpha, beta, bb, rr, rr_new;
     int num_iters;
 
-    MPI_Scatterv(matrix, number_element_per_partition, divide_at_index, MPI_DOUBLE, local_matrix,
+    // Devide the matrix amoung the processes
+    MPI_Scatterv(A, number_element_per_partition, divide_at_index, MPI_DOUBLE, local_matrix,
                  number_element_per_partition[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     if(rank == 0) {
-        double alpha, beta, bb, rr, rr_new;
-        double *r = new double[size];
-        double *Ap = new double[size];
+        r = new double[size];
+        Ap = new double[size];
 
         for (size_t i = 0; i < size; i++) {
             x[i] = 0.0;
@@ -181,16 +180,25 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     }
 
     for(num_iters = 1; num_iters <= max_iters; num_iters++)
-    {
+    {   
+        // Broadcast the new vector
         MPI_Bcast(p, size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
+        // Perform matrix vector multiplication on each portion
         precA(local_matrix, p, local_result, rows_per_process_array[rank], size);
 
+        // Perform partial dot product
+        dot(local_result, p, rows_per_process_array[rank]);
+        
+        // Gather the result of the moltplication in Ap (only on process 0)
         MPI_Gatherv(local_result, rows_per_process_array[rank], MPI_DOUBLE, Ap,
                     rows_per_process_array, row_displacements, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
+        // Gather the result for the dot product in process 0
+        MPI_Reduce(&local_residualNorm, &residualNorm, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
         if(rank == 0) {
-            alpha = rr / dot(p, Ap, size);
+            alpha = rr / residualNorm;
             axpby(alpha, p, 1.0, x, size);
             axpby(-alpha, Ap, 1.0, r, size);
             rr_new = dot(r, r, size);
@@ -237,6 +245,11 @@ int main(int argc, char ** argv)
     size_t size;
     int max_iters;
     double rel_error;
+    const char * input_file_matrix = nullptr;
+    const char * input_file_rhs = nullptr;
+    const char * output_file_sol =  nullptr;
+    int max_iters = 1000;
+    double rel_error = 1e-9;
 
     if(rank == 0) {
 
@@ -244,12 +257,10 @@ int main(int argc, char ** argv)
         printf("All parameters are optional and have default values\n");
         printf("\n");
 
-        const char * input_file_matrix = "io/matrix.bin";
-        const char * input_file_rhs = "io/rhs.bin";
-        const char * output_file_sol = "io/sol.bin";
-        int max_iters = 1000;
-        double rel_error = 1e-9;
-
+        input_file_matrix = "io/matrix.bin";
+        input_file_rhs = "io/rhs.bin";
+        output_file_sol = "io/sol.bin";
+        
         if(argc > 1) input_file_matrix = argv[1];
         if(argc > 2) input_file_rhs = argv[2];
         if(argc > 3) output_file_sol = argv[3];
