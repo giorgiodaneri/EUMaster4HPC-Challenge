@@ -157,6 +157,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     double* Ap = nullptr; // Final result of the vector matrix multiplication
     double local_residualNorm = 0.0; // Each process will calculate the first dot product 
     double residualNorm = 0.0; // Here the final dot product will be reduced
+    bool continueLoop = true; // To make all processes exit the loop
     double* r = nullptr; 
     double alpha, beta, bb, rr, rr_new;
     int num_iters;
@@ -175,11 +176,11 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
             p[i] = b[i];
         }
 
-        bb = dot(b, b, size);
+        bb = dot(b, b, size); // TODO: consider to perform this on each process so that we can parellize rr_new
         rr = bb;
     }
 
-    for(num_iters = 1; num_iters <= max_iters; num_iters++)
+    for(num_iters = 1; num_iters <= max_iters && continueLoop; num_iters++)
     {   
         // Broadcast the new vector
         MPI_Bcast(p, size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -197,14 +198,29 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
         // Gather the result for the dot product in process 0
         MPI_Reduce(&local_residualNorm, &residualNorm, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
+        // Perform other calculation on process 0
         if(rank == 0) {
+
             alpha = rr / residualNorm;
             axpby(alpha, p, 1.0, x, size);
             axpby(-alpha, Ap, 1.0, r, size);
-            rr_new = dot(r, r, size);
-            beta = rr_new / rr;
+            rr_new = dot(r, r, size); // TODO: Consider performing dot product in parallel
+            beta = rr_new / rr; 
             rr = rr_new;
-            if(std::sqrt(rr / bb) < rel_error) { break; }
+
+            if(std::sqrt(rr / bb) < rel_error) {
+                continueLoop = false; // Prepare to exit the loop
+            }
+        }
+
+        // Broadcast the decision to all processes
+        MPI_Bcast(&continueLoop, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD); 
+        
+        if(!continueLoop) {
+            break; // All processes exit the loop
+        }
+
+        if(rank == 0) {
             axpby(1.0, r, beta, p, size);
         }
     }
