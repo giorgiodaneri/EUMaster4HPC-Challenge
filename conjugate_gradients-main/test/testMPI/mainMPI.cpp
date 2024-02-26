@@ -243,8 +243,6 @@ int main(int argc, char ** argv)
     double * rhs = nullptr;
     double * sol = nullptr;
     size_t size;
-    int max_iters;
-    double rel_error;
     const char * input_file_matrix = nullptr;
     const char * input_file_rhs = nullptr;
     const char * output_file_sol =  nullptr;
