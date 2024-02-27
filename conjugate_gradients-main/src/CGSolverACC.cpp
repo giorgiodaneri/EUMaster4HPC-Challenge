@@ -47,6 +47,9 @@ void CGSolverACC::precA(const double *A, const double *x, double *Ax, size_t siz
     }
 }
 
+void CGSolverACC::solve() {
+}
+
 // void CGSolverACC::solve()
 // {
 //     using namespace std::chrono;

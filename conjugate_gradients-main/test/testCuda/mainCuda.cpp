@@ -6,7 +6,7 @@
 #include "../../include/CGSolverCuda.hpp"
 #include "../../include/CGSolver.hpp"
 
-extern void kernel_wrapper(double* matrix, double* rhs, double *sol, size_t size, int max_iters, float rel_error);
+extern void kernel_wrapper(double* matrix, double* rhs, double *sol, size_t size, int max_iters, double rel_error);
 
 bool read_matrix_from_file(const char *filename, double **matrix_out, size_t *num_rows_out, size_t *num_cols_out)
 {
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     const char *input_file_rhs = "io/rhs.bin";
     const char *output_file_sol = "io/sol.bin";
     int max_iters = 1000;
-    float rel_error = 1e-9;
+    double rel_error = 1e-9;
 
     if (argc > 1)
         input_file_matrix = argv[1];
