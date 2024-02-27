@@ -108,7 +108,7 @@ void axpby(double alpha, const double *x, double beta, double *y, size_t size)
 void precA(double* matrix, double* vector, double* result, int num_rows, int num_col) {
 #pragma omp parallel for
     for (int i = 0; i < num_rows; i++) {
-        int sum = 0;
+        double sum = 0;
 #pragma omp simd reduction(+ : sum)
         for (int j = 0; j < num_col; j++) {
             sum += matrix[i * num_col + j] * vector[j];
@@ -166,6 +166,12 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     MPI_Scatterv(A, number_element_per_partition, divide_at_index, MPI_DOUBLE, local_matrix,
                  number_element_per_partition[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
+    std::cout << "Process " << rank << " received matrix portion as 1D array:" << std::endl;
+    for(int i = 0; i < number_element_per_partition[rank]; i++) {
+        std::cout << local_matrix[i] << " ";
+    }
+    std::cout << std::endl;
+
     if(rank == 0) {
         r = new double[size];
         Ap = new double[size];
@@ -178,6 +184,18 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
 
         bb = dot(b, b, size); // TODO: consider to perform this on each process so that we can parellize rr_new
         rr = bb;
+
+        std::cout << "Initial matrix (A) as 1D array:" << std::endl;
+        for(int i = 0; i < size*size; i++) { 
+        std::cout << A[i] << " ";
+        if((i + 1) % size == 0) std::cout << std::endl; 
+
+        std::cout << "Initial vector (b):" << std::endl;
+        for(int i = 0; i < size; i++) {
+        std::cout << b[i] << " ";
+        }
+        std::cout << std::endl;
+    }
     }
 
     for(num_iters = 1; num_iters <= max_iters && continueLoop; num_iters++)
@@ -188,8 +206,16 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
         // Perform matrix vector multiplication on each portion
         precA(local_matrix, p, local_result, rows_per_process_array[rank], size);
 
-        // Perform partial dot product
-        dot(local_result, p, rows_per_process_array[rank]);
+        std::cout << "Process " << rank << " local result of precA:" << std::endl;
+        for(int i = 0; i < rows_per_process_array[rank]; i++) {
+            std::cout << local_result[i] << " ";
+        }
+        std::cout << std::endl;
+
+        // // TODO: Perform partial dot product
+        // local_residualNorm = dot(local_result, p + row_displacements[rank], rows_per_process_array[rank]);
+
+        // std::cout << "Process " << rank << " local dot product: " << local_residualNorm << std::endl;
         
         // Gather the result of the moltplication in Ap (only on process 0)
         MPI_Gatherv(local_result, rows_per_process_array[rank], MPI_DOUBLE, Ap,
@@ -200,8 +226,8 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
 
         // Perform other calculation on process 0
         if(rank == 0) {
-
-            alpha = rr / residualNorm;
+            // std::cout << "Final dot product: " << residualNorm << std::endl;
+            alpha = rr / dot(p, Ap, size); // TODO: Easy to parellilize 
             axpby(alpha, p, 1.0, x, size);
             axpby(-alpha, Ap, 1.0, r, size);
             rr_new = dot(r, r, size); // TODO: Consider performing dot product in parallel
