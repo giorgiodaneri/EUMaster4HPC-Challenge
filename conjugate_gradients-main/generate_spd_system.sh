@@ -8,4 +8,4 @@
 #SBATCH --partition=cpu                    # partition
 #SBATCH --account=p200301                  # project account<200b>
 
-srun ./random_spd_system.sh 5000 io/matrix.bin io/rhs.bin
+srun ./random_spd_system.sh 10000 io/matrix.bin io/rhs.bin
