@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(N-body)
+project(conjugate-gradient)
 
 set(CMAKE-CXX-STANDARD 20)
 set(CMAKE-CXX-FLAGS "${CMAKE-CXX-FLAGS} -Wall")
@@ -15,7 +15,7 @@ message(STATUS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -march=native")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -finline-functions -Wall -march=znver2 -mtune=znver2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -finline-functions -Wall")
 
 find_package(OpenACC REQUIRED)
 if(OpenACC_CXX_FOUND)

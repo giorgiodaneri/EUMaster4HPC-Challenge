@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(N-body)
+project(conjugate-gradient)
 
 set(CMAKE-CXX-STANDARD 20)
 set(CMAKE-CXX-FLAGS "${CMAKE-CXX-FLAGS} -Wall")
