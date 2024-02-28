@@ -148,11 +148,11 @@ int main(int argc, char **argv)
 
     printf("Solving the system ...\n");
     double *sol = new double[size];
-    CGSolverACC cg(matrix, rhs, sol, size, max_iters, rel_error);
 
     // Get starting timepoint
     auto start = high_resolution_clock::now();
 
+    CGSolverACC cg(matrix, rhs, sol, size, max_iters, rel_error);
     cg.solve_acc();
     
     auto stop = high_resolution_clock::now();

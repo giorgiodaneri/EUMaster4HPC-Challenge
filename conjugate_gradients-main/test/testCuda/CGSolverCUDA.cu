@@ -170,8 +170,8 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
     dim3 vecDimBlock(BLOCK_SIZE);
     dim3 vecDimGrid((SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE);
     // define dimension of the grid and block for matrices
-    // dim3 matDimBlock(BLOCK_SIZE);
-    // dim3 matDimGrid((SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, (SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 matDimBlock(BLOCK_SIZE);
+    dim3 matDimGrid((SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, (SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
     // cuBLAS handle
     cublasHandle_t handle;
@@ -210,8 +210,9 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
     cudaMemcpy(d_b, b, size * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_x, x, size * sizeof(double), cudaMemcpyHostToDevice);
 
-    // allocate memory for five doubles, since cuda needs this type for atomicAdd, rather than double
+    // allocate memory for five floats, since cuda needs this type for atomicAdd, rather than double
     // (no overloading exists for variables of type double)
+    // UPDATE: not using atomicAdd anymore, so using type double instead
     double *d_alpha, *d_beta, *d_rr, *d_rr_new, *d_bb, *d_temp_scalar;
     cudaMalloc((void **)&d_alpha, sizeof(double));
     cudaMalloc((void **)&d_beta, sizeof(double));
@@ -235,8 +236,8 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
 
     // calculate the dot product of the rhs, which is equal to that
     // of the residual
-    // dotProduct<<<vecDimGrid, vecDimBlock>>>(d_b, d_b, d_bb);
-    cublasDdot(handle, SIZE, d_b, 1, d_b, 1, d_bb);
+    dotProduct<<<vecDimGrid, vecDimBlock>>>(d_b, d_b, d_bb);
+    // cublasDdot(handle, SIZE, d_b, 1, d_b, 1, d_bb);
 
     // copy value of d_bb to d_rr
     cudaMemcpy(d_rr, d_bb, sizeof(double), cudaMemcpyDeviceToDevice);
@@ -247,18 +248,18 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
     for (num_iters = 0; num_iters < maxIterations; num_iters++)
     {
         // precA(A, p, Ap, size);
-        // matVecMult<<<matDimGrid, matDimBlock>>>(d_A, d_p, d_Ap);
+        matVecMult<<<matDimGrid, matDimBlock>>>(d_A, d_p, d_Ap);
         // Perform matrix-vector multiplication using cuBLAS gemv function
-        cublasDgemv(handle, CUBLAS_OP_N, size, size, &alpha, d_A, size, d_p, 1, &beta, d_Ap, 1);
+        // cublasDgemv(handle, CUBLAS_OP_N, size, size, &alpha, d_A, size, d_p, 1, &beta, d_Ap, 1);
 
         // compute new alpha coefficient
         // alpha = rr / dot(p, Ap, size);
-        // dotProduct<<<vecDimGrid, vecDimBlock>>>(d_p, d_Ap, d_temp_scalar);
-        cublasDdot(handle, SIZE, d_p, 1, d_Ap, 1, d_temp_scalar);
-        divide<<<1, 1>>>(d_rr, d_temp_scalar, d_alpha);
+        dotProduct<<<vecDimGrid, vecDimBlock>>>(d_p, d_Ap, d_temp_scalar);
+        // cublasDdot(handle, SIZE, d_p, 1, d_Ap, 1, d_temp_scalar);
+        // divide<<<1, 1>>>(d_rr, d_temp_scalar, d_alpha);
         // // NEEDED FOR CUBLAS DAXPY: copy value of d_alpha to dd_alpha
         // cudaMemcpy(&dd_alpha, d_alpha, sizeof(double), cudaMemcpyDeviceToDevice);
-                
+
         // compute new approximate of the solution at step k+1
         // x_k+1 = x_k + alpha_k * p_k
         // axpby(alpha, p, 1.0, x, size);
@@ -275,8 +276,8 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
 
         // update the 2-norm of the residual at step k+1
         // rr_new = dot(r, r, size);
-        // dotProduct<<<vecDimGrid, vecDimBlock>>>(d_r, d_r, d_rr_new);
-        cublasDdot(handle, SIZE, d_r, 1, d_r, 1, d_rr_new);
+        dotProduct<<<vecDimGrid, vecDimBlock>>>(d_r, d_r, d_rr_new);
+        // cublasDdot(handle, SIZE, d_r, 1, d_r, 1, d_rr_new);
 
         // beta_k = ||r_k+1||^2 / ||r_k||^2
         // beta = rr_new / rr;
@@ -302,7 +303,6 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
         scalarVecMult<<<vecDimGrid, vecDimBlock>>>(d_p, d_temp, d_beta);
         vecVecAdd<<<vecDimGrid, vecDimBlock>>>(d_r, d_temp, d_p);
     }
-
     // // Record stop event
     // cudaEventRecord(stop);
     // // Synchronize to ensure that the event recording is completed
@@ -328,6 +328,145 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
     cudaFree(d_temp);
     cudaFree(d_alpha);
     // cudaFree(&dd_alpha);
+    cudaFree(d_beta);
+    cudaFree(d_rr);
+    cudaFree(d_rr_new);
+    cudaFree(d_bb);
+    cudaFree(d_temp_scalar);
+
+    // Destroy cuBLAS handle
+    cublasDestroy(handle);
+
+    // free host memory
+    delete[] r;
+    delete[] p;
+    delete[] Ap;
+}
+
+void solve_cublas(double *A, double *b, double *x, size_t size, int maxIterations, double tolerance)
+{
+    // cuBLAS handle
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
+    double alpha = 1.0;
+    double beta = 0.0;
+
+    // residual
+    double *r = new double[size];
+    // preconditioned residual
+    double *p = new double[size];
+    double *Ap = new double[size];
+    int num_iters;
+    // norm of the residual
+    double r_norm = 1.0;
+    double b_norm = 1.0;
+
+    // allocate device memory
+    double *d_A, *d_b, *d_x, *d_r, *d_p, *d_Ap, *d_temp;
+    cudaMalloc((void **)&d_A, size * size * sizeof(double));
+    cudaMalloc((void **)&d_b, size * sizeof(double));
+    cudaMalloc((void **)&d_x, size * sizeof(double));
+    cudaMalloc((void **)&d_r, size * sizeof(double));
+    cudaMalloc((void **)&d_p, size * sizeof(double));
+    cudaMalloc((void **)&d_Ap, size * sizeof(double));
+    cudaMalloc((void **)&d_temp, size * sizeof(double));
+
+    // // NEEDED FOR CUBLAS DAXPY:
+    double dd_alpha;
+    // allocate device memory for dd_alpha
+    cudaMalloc((void **)&dd_alpha, sizeof(double));
+
+    // copy data to device
+    cudaMemcpy(d_A, A, size * size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, b, size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, x, size * sizeof(double), cudaMemcpyHostToDevice);
+
+    double *d_alpha, *d_beta, *d_rr, *d_rr_new, *d_bb, *d_temp_scalar;
+    cudaMalloc((void **)&d_alpha, sizeof(double));
+    cudaMalloc((void **)&d_beta, sizeof(double));
+    cudaMalloc((void **)&d_rr, sizeof(double));
+    cudaMalloc((void **)&d_rr_new, sizeof(double));
+    cudaMalloc((void **)&d_bb, sizeof(double));
+    cudaMalloc((void **)&d_temp_scalar, sizeof(double));
+
+    // initialize the residual by copying the rhs into it
+    cudaMemcpy(d_r, d_b, size * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(d_p, d_b, size * sizeof(double), cudaMemcpyDeviceToDevice);
+
+    // calculate the dot product of the rhs, which is equal to that
+    // of the residual
+    cublasDdot(handle, SIZE, d_b, 1, d_b, 1, d_bb);
+
+    // copy value of d_bb to d_rr
+    cudaMemcpy(d_rr, d_bb, sizeof(double), cudaMemcpyDeviceToDevice);
+    // copy value of d_bb (norm of rhs) to host
+    cudaMemcpy(&b_norm, d_bb, sizeof(double), cudaMemcpyDeviceToHost);
+
+    // now start the CG solver iterations
+    for (num_iters = 0; num_iters < maxIterations; num_iters++)
+    {
+        // Perform matrix-vector multiplication using cuBLAS gemv function
+        cublasDgemv(handle, CUBLAS_OP_N, size, size, &alpha, d_A, size, d_p, 1, &beta, d_Ap, 1);
+
+        // compute new alpha coefficient
+        // alpha = rr / dot(p, Ap, size);
+        // dotProduct<<<vecDimGrid, vecDimBlock>>>(d_p, d_Ap, d_temp_scalar);
+        cublasDdot(handle, SIZE, d_p, 1, d_Ap, 1, d_temp_scalar);
+        divide<<<1, 1>>>(d_rr, d_temp_scalar, d_alpha);
+
+        // NEEDED FOR CUBLAS DAXPY: copy value of d_alpha to dd_alpha
+        cudaMemcpy(&dd_alpha, d_alpha, sizeof(double), cudaMemcpyDeviceToDevice);
+
+        // compute new approximate of the solution at step k+1
+        // x_k+1 = x_k + alpha_k * p_k
+        cublasDaxpy(handle, SIZE, &dd_alpha, d_p, 1, d_x, 1);
+
+        // compute new residual at step k+1
+        // r_k+1 = r_k - alpha_k * A * p_k
+        cublasDaxpy(handle, SIZE, &dd_alpha, d_Ap, 1, d_r, 1);
+
+        // update the 2-norm of the residual at step k+1
+        // rr_new = dot(r, r, size);
+        cublasDdot(handle, SIZE, d_r, 1, d_r, 1, d_rr_new);
+
+        // beta_k = ||r_k+1||^2 / ||r_k||^2
+        // beta = rr_new / rr;
+        divide<<<1, 1>>>(d_rr_new, d_rr, d_beta);
+
+        // update residual norm
+        // rr = rr_new;
+        memCopy<<<1, 1>>>(d_rr_new, d_rr);
+
+        // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
+        // need to copy the norm of the residual back to the device
+        // in order to evaluate it
+        cudaMemcpy(&r_norm, d_rr_new, sizeof(double), cudaMemcpyDeviceToHost);
+
+        if (std::sqrt(r_norm / b_norm) < tolerance)
+        {
+            break;
+        }
+
+        // compute new direction at step k+1
+        // p_k+1 = r_k+1 + beta_k * p_k
+        scalarVecMult<<<vecDimGrid, vecDimBlock>>>(d_p, d_temp, d_beta);
+        vecVecAdd<<<vecDimGrid, vecDimBlock>>>(d_r, d_temp, d_p);
+    }
+    // print the relative error and number of iterations
+    printf("relative error: %e \n", std::sqrt(r_norm / b_norm));
+    printf("number of iterations: %d \n", num_iters);
+
+    // free device memory
+    cudaFree(d_A);
+    cudaFree(d_b);
+    cudaFree(d_x);
+    cudaFree(d_r);
+    cudaFree(d_p);
+    cudaFree(d_Ap);
+    cudaFree(d_temp);
+    cudaFree(d_alpha);
+    cudaFree(&dd_alpha);
     cudaFree(d_beta);
     cudaFree(d_rr);
     cudaFree(d_rr_new);
