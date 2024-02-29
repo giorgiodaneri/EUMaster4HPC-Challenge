@@ -10,7 +10,8 @@
 
 PROGRAM_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/test/testOMP/build/mainOmp"
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-export OMP_PROC_BIND=close
-export OMP_PLACES="threads"
-export GOMP_CPU_AFFINITY="0-32, 64-96"
+#export OMP_PROC_BIND=close
+#export OMP_PLACES="threads"
+#export GOMP_CPU_AFFINITY="0-32, 64-96"
 srun --cpus-per-task="$SLURM_CPUS_PER_TASK" "$PROGRAM_PATH" ../../io/matrix.bin ../../io/rhs.bin ../../io/sol.bin
+
