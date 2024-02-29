@@ -1,15 +1,22 @@
 cmake_minimum_required(VERSION 3.20)
 project(conjugate-gradient)
 
-set(CMAKE-CXX-STANDARD 20)
-set(CMAKE-CXX-FLAGS "${CMAKE-CXX-FLAGS} -Wall")
 
-# Set default build type to Release.
-if(NOT CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+# Set the C++ standard and compile options
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
+# Set the default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    add_definitions(-DBUILD_TYPE_DEBUG)
+
+# Configure flags for Debug and Release builds
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(BUILD_TYPE_DEBUG)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+else()
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 endif()
 message(STATUS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -17,16 +24,15 @@ message(STATUS)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -finline-functions -Wall")
 
+
+# Find the OpenACC package
 find_package(OpenACC REQUIRED)
-if(OpenACC_CXX_FOUND)
-set(OPENACC_FLAGS "-fopenacc -foffload-options=nvptx-none=-march=sm_80")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenACC_CXX_FLAGS}")
-endif()
 
-# Project declaration
-project(conjugate-gradient VERSION 1.0.0 DESCRIPTION "Accelerated version of CG iterative method")
+# Assuming OpenACC is found, set OpenACC compile flags
+set(OPENACC_FLAGS "-fopenacc -foffload=nvptx-none -march=sm_80")
 
-include_directories(../../include)
+# Include directories
+target_include_directories(conjugate-gradient PRIVATE ../../include)
 
 # Library files
 add_library(conjugate-gradient STATIC
@@ -34,17 +40,13 @@ add_library(conjugate-gradient STATIC
     ../../src/CGSolverACC.cpp
 )
 
-# Version property
-set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
+add_executable(mainOpenACC mainOpenACC.cpp)
 
-add_executable(mainOpenACC
-mainOpenACC.cpp
-${HEADER_FILES}
-)
-
-target_compile_options(conjugate-gradient PRIVATE ${OPENACC_OPTIONS})
-target_compile_options(mainOpenACC PRIVATE ${OPENACC_OPTIONS})
+# Apply OpenACC flags to targets
+target_compile_options(conjugate-gradient PRIVATE ${OPENACC_FLAGS})
+target_compile_options(mainOpenACC PRIVATE ${OPENACC_FLAGS})
 
 # target_link_libraries
 target_link_libraries(conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
 target_link_libraries(mainOpenACC conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
+
