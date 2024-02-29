@@ -15,7 +15,7 @@ It is a program which solves a system of equations using the conjugate gradient 
 
 The main program in this project is `conjugate_gradients`, which solves the system. It loads and input dense matrix in row-major format and a right-hand-side from given binary files, performs the conjugate gradient iterations until convergence, and then writes the found solution to a given output binary file. A symmetric positive definite matrix and a right-hand-side can be generated using the `random_spd_system.sh` script and program.
 
-Inorder to test your code on MeluXina, please use the interactive node (for quick checking)
+In order to test your code on MeluXina, please use the interactive node (for quick checking)
 ``` bash
 salloc -A p200301 --res cpudev -q dev -N 1 -t 00:30:00
 ```

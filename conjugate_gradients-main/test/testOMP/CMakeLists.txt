@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
+project(conjugate-gradient)
 
 project(MPI_Implementation VERSION 1.0)
 
@@ -16,6 +17,9 @@ else()
     add_compile_options(-O3 -Wall -march=native)
 endif()
 
+message(STATUS)
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS)
 add_definitions(-DNO_AFFINITY=1)
 add_compile_options(-DNO_AFFINITY=1)
 SET(CMAKE_CXX_FLAGS"-Ofast -Wall -mavx2 -flto -lopenblas -lpthread -march=znver2 -mtune=znver2 -qopt-zmm-usage=high -qopt-prefetch -qopt-dynamic-align")
@@ -55,3 +59,6 @@ target_include_directories(mainOmp PRIVATE ../../include)
 # target_link_libraries
 target_link_libraries(conjugate-gradient OpenMP::OpenMP_CXX ${OPENMP_FLAGS} openblas)
 target_link_libraries(mainOmp conjugate-gradient OpenMP::OpenMP_CXX ${OPENMP_FLAGS} openblas)
+
+target_link_libraries(mainOmp conjugate-gradient OpenMP::OpenMP_CXX ${OPENMP_FLAGS} openblas)
+

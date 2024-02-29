@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
-project(OpenACC_Implementation VERSION 1.0.0 DESCRIPTION "OpenACC Implementation")
+project(conjugate-gradient)
+
 
 # Set the C++ standard and compile options
 set(CMAKE_CXX_STANDARD 17)
@@ -17,6 +18,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 else()
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 endif()
+message(STATUS)
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -finline-functions -Wall")
+
 
 # Find the OpenACC package
 find_package(OpenACC REQUIRED)
@@ -39,6 +46,7 @@ add_executable(mainOpenACC mainOpenACC.cpp)
 target_compile_options(conjugate-gradient PRIVATE ${OPENACC_FLAGS})
 target_compile_options(mainOpenACC PRIVATE ${OPENACC_FLAGS})
 
-# Link libraries with targets
-target_link_libraries(conjugate-gradient PRIVATE OpenACC::OpenACC_CXX)
-target_link_libraries(mainOpenACC PRIVATE conjugate-gradient OpenACC::OpenACC_CXX)
+# target_link_libraries
+target_link_libraries(conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
+target_link_libraries(mainOpenACC conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS})
+

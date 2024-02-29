@@ -3,7 +3,10 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
-#include "CGSolver.hpp"
+#include "../../include/CGSolverCuda.hpp"
+#include "../../include/CGSolver.hpp"
+
+extern void kernel_wrapper(double *matrix, double *rhs, double *sol, size_t size, int max_iters, double rel_error);
 
 bool read_matrix_from_file(const char *filename, double **matrix_out, size_t *num_rows_out, size_t *num_cols_out)
 {
@@ -66,7 +69,7 @@ void print_matrix(const double *matrix, size_t num_rows, size_t num_cols, FILE *
 
 int main(int argc, char **argv)
 {
-    using namespace std::chrono;    
+    using namespace std::chrono;
     printf("Usage: ./random_matrix input_file_matrix.bin input_file_rhs.bin output_file_sol.bin max_iters rel_error\n");
     printf("All parameters are optional and have default values\n");
     printf("\n");
@@ -147,17 +150,15 @@ int main(int argc, char **argv)
     printf("Solving the system ...\n");
     double *sol = new double[size];
 
-    CGSolver cg(matrix, rhs, sol, size, max_iters, rel_error);
-    
     // Get starting timepoint
     auto start = high_resolution_clock::now();
 
-    cg.solve();
+    kernel_wrapper(matrix, rhs, sol, size, max_iters, rel_error);
 
     auto stop = high_resolution_clock::now();
-    // // Get duration. Substart timepoints to
-    // // get duration. To cast it to proper unit
-    // // use duration cast method
+    // Get duration. Substart timepoints to
+    // get duration. To cast it to proper unit
+    // use duration cast method
     auto duration = duration_cast<milliseconds>(stop - start);
     std::cout << "Time taken by function: "
               << duration.count() << " milliseconds" << std::endl;

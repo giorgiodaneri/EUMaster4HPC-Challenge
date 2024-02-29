@@ -67,6 +67,8 @@ void print_matrix(const double *matrix, size_t num_rows, size_t num_cols, FILE *
 
 int main(int argc, char **argv)
 {
+    using namespace std::chrono;
+
     printf("Usage: ./random_matrix input_file_matrix.bin input_file_rhs.bin output_file_sol.bin max_iters rel_error\n");
     printf("All parameters are optional and have default values\n");
     printf("\n");
@@ -146,8 +148,21 @@ int main(int argc, char **argv)
 
     printf("Solving the system ...\n");
     double *sol = new double[size];
+
+    // Get starting timepoint
+    auto start = high_resolution_clock::now();
+
     CGSolverACC cg(matrix, rhs, sol, size, max_iters, rel_error);
     cg.solve_acc();
+    
+    auto stop = high_resolution_clock::now();
+    // // Get duration. Substart timepoints to
+    // // get duration. To cast it to proper unit
+    // // use duration cast method
+    auto duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Time taken by function: "
+              << duration.count() << " milliseconds" << std::endl;
+              
     printf("Done\n");
     printf("\n");
 

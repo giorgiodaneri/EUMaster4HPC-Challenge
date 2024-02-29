@@ -47,6 +47,9 @@ void CGSolverACC::precA(const double *A, const double *x, double *Ax, size_t siz
     }
 }
 
+void CGSolverACC::solve() {
+}
+
 // void CGSolverACC::solve()
 // {
 //     using namespace std::chrono;
@@ -185,7 +188,7 @@ void CGSolverACC::precA(const double *A, const double *x, double *Ax, size_t siz
 
 void CGSolverACC::solve_acc()
 {
-    using namespace std::chrono;
+    // using namespace std::chrono;
 
     double *A = getA();
     double *b = getB();
@@ -202,8 +205,8 @@ void CGSolverACC::solve_acc()
     double *Ap = new double[size];
     int num_iters;
 
-    // Get starting timepoint
-    auto start = high_resolution_clock::now();
+    // // Get starting timepoint
+    // auto start = high_resolution_clock::now();
 
     for (size_t i = 0; i < size; i++)
     {
@@ -248,13 +251,13 @@ void CGSolverACC::solve_acc()
         axpby(1.0, r, beta, p, size);
     }
 
-    auto stop = high_resolution_clock::now();
-    // // Get duration. Substart timepoints to
-    // // get duration. To cast it to proper unit
-    // // use duration cast method
-    auto duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Time taken by function: "
-              << duration.count() << " milliseconds" << std::endl;
+    // auto stop = high_resolution_clock::now();
+    // // // Get duration. Substart timepoints to
+    // // // get duration. To cast it to proper unit
+    // // // use duration cast method
+    // auto duration = duration_cast<milliseconds>(stop - start);
+    // std::cout << "Time taken by function: "
+    //           << duration.count() << " milliseconds" << std::endl;
 
     delete[] r;
     delete[] p;

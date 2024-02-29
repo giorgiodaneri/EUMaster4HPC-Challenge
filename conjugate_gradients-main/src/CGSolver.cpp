@@ -39,7 +39,7 @@ void CGSolver::precA(const double *A, const double *x, double *Ax, size_t size)
 
 void CGSolver::solve()
 {
-    using namespace std::chrono;
+    // using namespace std::chrono;
 
     double *A = getA();
     double *b = getB();
@@ -56,8 +56,8 @@ void CGSolver::solve()
     double *Ap = new double[size];
     int num_iters;
 
-    // Get starting timepoint
-    auto start = high_resolution_clock::now();
+    // // Get starting timepoint
+    // auto start = high_resolution_clock::now();
 
     for (size_t i = 0; i < size; i++)
     {
@@ -88,13 +88,14 @@ void CGSolver::solve()
         // r_k+1 = r_k - alpha_k * A * p_k
         axpby(-alpha, Ap, 1.0, r, size);
 
-        // update the 2-norm of the residual at step k+1
+        // compute the 2-norm of the residual at step k+1
         rr_new = dot(r, r, size);
         // compute beta coefficient
         // beta_k = ||r_k+1||^2 / ||r_k||^2
-        // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
         beta = rr_new / rr;
+        // update residual norm
         rr = rr_new;
+        // stopping criterion ==> sqrt(||r||^2 / ||b||^2) < rel_error equivalent to 2-norm or euclidean norm
         if (std::sqrt(rr / bb) < rel_error)
         {
             break;
@@ -105,13 +106,13 @@ void CGSolver::solve()
         axpby(1.0, r, beta, p, size);
     }
 
-    auto stop = high_resolution_clock::now();
-    // // Get duration. Substart timepoints to
-    // // get duration. To cast it to proper unit
-    // // use duration cast method
-    auto duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Time taken by function: "
-              << duration.count() << " milliseconds" << std::endl;
+    // auto stop = high_resolution_clock::now();
+    // // // Get duration. Substart timepoints to
+    // // // get duration. To cast it to proper unit
+    // // // use duration cast method
+    // auto duration = duration_cast<milliseconds>(stop - start);
+    // std::cout << "Time taken by function: "
+    //           << duration.count() << " milliseconds" << std::endl;
 
     delete[] r;
     delete[] p;

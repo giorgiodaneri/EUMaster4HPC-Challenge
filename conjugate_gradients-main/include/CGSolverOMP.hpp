@@ -17,8 +17,10 @@ public:
     ~CGSolverOMP() = default;
 
     void solve() override;
+    void solveBLAS();
     double dot(const double *x, const double *y, size_t size) override;
     void axpby(double alpha, const double *x, double beta, double *y, size_t size) override;
     void precA(const double *A, const double *x, double *Ax, size_t size) override;
+    void gemv(const double *A, const double *x, double *Ax, size_t size);
 };
 #endif
