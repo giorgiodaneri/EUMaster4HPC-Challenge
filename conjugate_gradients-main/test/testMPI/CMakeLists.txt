@@ -1,51 +1,31 @@
 cmake_minimum_required(VERSION 3.20)
-project(N-body)
 
-set(CMAKE-CXX-STANDARD 20)
-set(CMAKE-CXX-FLAGS "${CMAKE-CXX-FLAGS} -Wall")
+project(MPI_Implementation VERSION 1.0)
 
-# Set default build type to Release.
-if(NOT CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+set(CMAKE_CXX_STANDARD 17)
+
+# Set the default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    add_definitions(-DBUILD_TYPE_DEBUG)
+
+# Configure flags for Debug and Release builds
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    add_compile_options(-g -O0 -Wall -DDEBUG)
+else()
+    add_compile_options(-O3 -Wall -march=native)
 endif()
-message(STATUS)
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS)
-set(CMAKE_CXX_FLAGS_DEBUG "-O3 -Wall -march=native")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")  
 
 find_package(MPI REQUIRED)
-# openMPI
+find_package(OpenMP REQUIRED)
+
 add_definitions(-DOMPI_SKIP_MPICXX)
 
-include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+include_directories(${MPI_INCLUDE_PATH})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
-# Project declaration
-project(conjugate-gradient VERSION 1.0.0 DESCRIPTION "Accelerated version of CG iterative method")
+add_executable(mainMPI_OpenMP mainMPI.cpp)
 
-include_directories(../../include)
+target_include_directories(mainMPI_OpenMP PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${MPI_INCLUDE_PATH})
 
-# Library files
-add_library(conjugate-gradient STATIC
-    ../../src/CGSolver.cpp
-    ../../src/CGSolverMPI.cpp
-)
-
-# Version property
-set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
-
-add_executable(main
-main.cpp
-${HEADER_FILES}
-)
-
-# Include directory
-target_include_directories(conjugate-gradient PRIVATE ../../include)
-target_include_directories(main PRIVATE ../../include)
-
-# target_link_libraries
-target_link_libraries(conjugate-gradient)
-target_link_libraries(main conjugate-gradient)
+target_link_libraries(mainMPI_OpenMP PRIVATE MPI::MPI_CXX OpenMP::OpenMP_CXX)
