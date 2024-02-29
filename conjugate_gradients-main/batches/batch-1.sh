@@ -15,7 +15,7 @@
 mkdir -p ../result
 
 SAMPLE_PY_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/sample.py"
-PROGRAM_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/test/testOMP/build/mainOmp"
+PROGRAM_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/test/testSerial/build/main"
 
 chmod +rx "$SAMPLE_PY_PATH"
 
