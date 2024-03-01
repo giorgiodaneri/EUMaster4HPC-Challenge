@@ -4,7 +4,7 @@ NVCC = nvcc
 
 # Compiler flags
 CXXFLAGS = -Ofast -funroll-loops -march=native
-NVCCFLAGS = -gen-opt-lto -maxrregcount=12 -dlto -arch=sm_80 -O3 -use_fast_math -Xptxas -O3 -Xlinker -O3 -Xcompiler -Ofast 
+NVCCFLAGS = -gen-opt-lto -dlto -arch=sm_80 -O3 -use_fast_math -Xptxas -O3 -Xlinker -O3 -Xcompiler -Ofast 
 
 # Libraries
 LIBS = -lcublas

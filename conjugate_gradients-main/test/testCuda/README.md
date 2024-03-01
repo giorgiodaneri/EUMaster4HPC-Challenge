@@ -14,8 +14,8 @@ Then compile using the CUDA compiler nvcc with:
 make
 ```
 
-Then launch a batch job contaning the **runCG.sh** slurm batch script with: 
+Then launch a batch job contaning the **run.sh** slurm batch script with: 
 
 ``` bash
-sbatch runCG.sh
+sbatch run.sh
 ```

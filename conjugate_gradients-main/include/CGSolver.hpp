@@ -17,7 +17,7 @@ public:
     max_iter_(maxIterations), 
     tol_(tolerance) {}
 
-    ~CGSolver() = default;
+    virtual ~CGSolver() = default;
 
     // void solve();
     // void setA(double *A) {A_ = A;}
