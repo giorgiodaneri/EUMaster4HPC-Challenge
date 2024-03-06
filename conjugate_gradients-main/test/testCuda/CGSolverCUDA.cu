@@ -294,20 +294,20 @@ void solve_cuda(double *A, double *b, double *x, size_t size, int maxIterations,
     printf("number of iterations: %d \n", num_iters);
 
     // free device memory
-    cudaDeviceReset();
-    // cudaFree(d_A);
-    // cudaFree(d_b);
-    // cudaFree(d_x);
-    // cudaFree(d_r);
-    // cudaFree(d_p);
-    // cudaFree(d_Ap);
-    // cudaFree(d_temp);
-    // cudaFree(d_alpha);
-    // cudaFree(d_beta);
-    // cudaFree(d_rr);
-    // cudaFree(d_rr_new);
-    // cudaFree(d_bb);
-    // cudaFree(d_temp_scalar);
+    // cudaDeviceReset();
+    cudaFree(d_A);
+    cudaFree(d_b);
+    cudaFree(d_x);
+    cudaFree(d_r);
+    cudaFree(d_p);
+    cudaFree(d_Ap);
+    cudaFree(d_temp);
+    cudaFree(d_alpha);
+    cudaFree(d_beta);
+    cudaFree(d_rr);
+    cudaFree(d_rr_new);
+    cudaFree(d_bb);
+    cudaFree(d_temp_scalar);
 }
 
 void solve_cublas(double *A, double *b, double *x, size_t size, int maxIterations, double tolerance)
