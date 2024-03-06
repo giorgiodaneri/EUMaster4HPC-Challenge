@@ -2,7 +2,7 @@
 **/build/
 **/profilerData*
 .vscode/
-**/result/
+**/result*/
 *.o
 main*
 slurm*

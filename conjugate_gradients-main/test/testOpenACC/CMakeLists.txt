@@ -17,13 +17,6 @@ message(STATUS)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -Wall -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native -mtune=native -mavx2 -mfma -funroll-loops") 
 
-# IF (MY_COMPILER_OPTION STREQUAL "Intel")
-#   MESSAGE(STATUS "** Compiling with Intel settings **")
-#   SET(CMAKE_CXX_COMPILER "icpx")
-#   SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
-#   SET(CMAKE_CXX_FLAGS_DEBUG "-g")
-# ENDIF ()
-
 find_package(OpenACC REQUIRED)
 if(OpenACC_CXX_FOUND)
     set(OPENACC_FLAGS "-fopenacc -foffload-options=nvptx-none=-march=sm_80")
@@ -46,17 +39,17 @@ set(MKL_LIBRARIES mkl_intel_lp64 mkl_sequential mkl_core pthread m dl)
 # Version property
 set_target_properties(conjugate-gradient PROPERTIES VERSION ${PROJECT_VERSION})
 
-add_executable(mainOpenACC
+add_executable(main60
     mainOpenACC.cpp
     ${HEADER_FILES}
 )
 
 target_compile_options(conjugate-gradient PRIVATE ${OPENACC_OPTIONS})
-target_compile_options(mainOpenACC PRIVATE ${OPENACC_OPTIONS})
+target_compile_options(main60 PRIVATE ${OPENACC_OPTIONS})
 
 # Add profiling flags for gprof
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 
 # target_link_libraries
 target_link_libraries(conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS} ${MKL_LIBRARIES})
-target_link_libraries(mainOpenACC conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS} ${MKL_LIBRARIES})
+target_link_libraries(main60 conjugate-gradient OpenACC::OpenACC_CXX ${OPENACC_FLAGS} ${MKL_LIBRARIES})
