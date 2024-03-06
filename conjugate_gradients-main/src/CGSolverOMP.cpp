@@ -59,14 +59,16 @@ void CGSolverOMP::axpby(double alpha, const double *x, double beta, double *y, s
 // }
 
 // PARALLEL LOOPS VERSION
-#pragma omp declare simd
+// the following pragma is useless
+// #pragma omp declare simd
 void CGSolverOMP::precA(const double *A, const double *x, double *Ax, size_t size)
 {
 #pragma omp parallel for schedule(static)
     for (size_t i = 0; i < size; i++)
     {
         double y_val = 0.0;
-#pragma omp parallel for simd reduction(+ : y_val)
+// this pragma is useless with 32 threads, is bad with more (too much synch time)
+// #pragma omp parallel for simd reduction(+ : y_val)
         for (size_t j = 0; j < size; j++)
         {
             y_val += A[i * size + j] * x[j];
@@ -163,6 +165,8 @@ void CGSolverOMP::solve()
     if (num_iters <= max_iters)
     {
         printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
+        // print the number of threads
+        printf("Number of threads: %d\n", omp_get_max_threads());
     }
     else
     {

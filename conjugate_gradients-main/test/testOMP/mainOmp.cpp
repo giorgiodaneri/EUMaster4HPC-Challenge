@@ -152,8 +152,8 @@ int main(int argc, char **argv)
     auto start = high_resolution_clock::now();
 
     CGSolverOMP cg(matrix, rhs, sol, size, max_iters, rel_error);
-    // cg.solveBLAS();
-    cg.solve();
+    cg.solveBLAS();
+    // cg.solve();
     
     auto stop = high_resolution_clock::now();
     // // Get duration. Substart timepoints to
