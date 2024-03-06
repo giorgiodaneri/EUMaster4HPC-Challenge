@@ -24,7 +24,7 @@ After securing a node, load the required FPGA SDK and additional modules to prep
 
     module load ifpgasdk 520nmx intel env/release/latest ifpga/2021.3.0
 
-## Step 2a: Load MKL Library
+### Step 2a: Load MKL Library
 
 Additionally, load the MKL library for optimized mathematical computations.
 

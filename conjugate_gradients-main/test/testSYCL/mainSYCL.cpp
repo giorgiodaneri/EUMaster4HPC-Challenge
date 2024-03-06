@@ -94,10 +94,10 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
     }
 }
 
-void axpby_device(sycl::queue& queue, double alpha, const double* x_dev, double* beta, double* y_dev, size_t size) {
+void axpby_device(sycl::queue& queue, double alpha, const double* x_dev, double beta, double* y_dev, size_t size) {
     
-    if (*beta != 1.0) {
-        oneapi::mkl::blas::scal(queue, size, *beta, y_dev, 1).wait();
+    if (beta != 1.0) {
+        oneapi::mkl::blas::scal(queue, size, beta, y_dev, 1).wait();
     }
 
     oneapi::mkl::blas::axpy(queue, size, alpha, x_dev, 1, y_dev, 1).wait();
@@ -133,84 +133,86 @@ void gemv_device(sycl::queue& queue, double alpha, const double* A_dev, const do
 void conjugate_gradients(sycl::queue &queue, const double *A_host, const double *b_host, double *x_host, size_t size, int max_iters, double rel_error)
 {
     double *A_dev = sycl::malloc_device<double>(size * size, queue);
-    queue.memcpy(A_dev, A_host, sizeof(double) * size * size).wait();
+    queue.memcpy(A_dev, A_host, sizeof(double) * size * size);
 
     double *b_dev = sycl::malloc_device<double>(size, queue);
-    queue.memcpy(b_dev, b_host, sizeof(double) * size).wait();
+    queue.memcpy(b_dev, b_host, sizeof(double) * size);
 
     double *r_dev = sycl::malloc_device<double>(size, queue);
-    queue.memcpy(r_dev, b_host, sizeof(double) * size).wait();
+    queue.memcpy(r_dev, b_host, sizeof(double) * size);
 
     double *p_dev = sycl::malloc_device<double>(size, queue);
-    queue.memcpy(p_dev, b_host, sizeof(double) * size).wait();
+    queue.memcpy(p_dev, b_host, sizeof(double) * size);
 
     double *x_dev = sycl::malloc_device<double>(size, queue);
-    queue.memset(x_dev, 0, size * sizeof(double)).wait();
+    queue.memset(x_dev, 0, size * sizeof(double));
 
-    double *Ap_dev = sycl::malloc_device<double>(size, queue);
+    double* Ap_dev = sycl::malloc_device<double>(size, queue);
     double* rr_new_dev = sycl::malloc_device<double>(1, queue);
-    double* beta_dev = sycl::malloc_device<double>(1, queue);
+    double* bb_dev = sycl::malloc_device<double>(1, queue);
+    double* rr_dev = sycl::malloc_device<double>(1, queue);
+    double* alpha_dev = sycl::malloc_device<double>(1, queue);
+    double* pAp_dot_dev = sycl::malloc_device<double>(1, queue);
 
-    double* bb_shared = sycl::malloc_shared<double>(1, queue);
-    double* rr_shared = sycl::malloc_shared<double>(1, queue);
-    double* alpha_shared = sycl::malloc_shared<double>(1, queue);
-    double* pAp_dot_shared = sycl::malloc_shared<double>(1, queue);
-    double* error_shared = sycl::malloc_shared<double>(1, queue);
-
-    // bb = dot(b, b, size);
-    dot_device(queue, b_dev, b_dev, size, bb_shared);
-    
-    // rr = bb;
-    *rr_shared = *bb_shared;
-
-    queue.wait();
+    queue.wait(); // Wait for all memory to be allocated and set
 
     int num_iters;
+    double alpha, rr, rr_new, bb, pAp_dot, beta, error;
+
+    // bb = dot(b, b, size);
+    dot_device(queue, b_dev, b_dev, size, bb_dev);
+    
+    // rr = bb on device
+    queue.memcpy(rr_dev, bb_dev, sizeof(double));
+    queue.memcpy(&bb, bb_dev, sizeof(double));
+    queue.wait();
+
+    // rr =  bb on host
+    rr = bb;
 
     for(num_iters = 1; num_iters <= max_iters; num_iters++)
     {
         gemv_device(queue, 1.0, A_dev, p_dev, 0.0, Ap_dev, size, size);
-        dot_device(queue, p_dev, Ap_dev, size, pAp_dot_shared);
-
-        *alpha_shared  = *rr_shared / *pAp_dot_shared; // Calculate alpha (maybe perform in the kernel)
-        queue.wait();
-
+        dot_device(queue, p_dev, Ap_dev, size, pAp_dot_dev);
+        
+        queue.memcpy(&pAp_dot, pAp_dot_dev, sizeof(double)).wait();  // Copy pAp_dot_dev to host
+        alpha = rr / pAp_dot;                                     // Compute alpha on host
+        queue.memcpy(alpha_dev, &alpha, sizeof(double)).wait();  // Copy computed alpha back to device
+        
         queue.submit([&](sycl::handler& cgh) {
-        cgh.parallel_for<class axpby_kernel>(sycl::range<1>(size), [=](sycl::id<1> idx) {
-            int i = idx[0];
-            // Update r_dev in parallel: r_dev = neg_alpha * Ap_dev + 1.0 * r_dev
-            r_dev[i] = -(*alpha_shared) * Ap_dev[i] + r_dev[i];
-            // Update x_dev in parallel: x_dev = alpha * p_dev + 1.0 * x_dev
-            x_dev[i] = *alpha_shared * p_dev[i] + x_dev[i];
-        });
+            cgh.parallel_for<class axpby_kernel>(sycl::range<1>(size), [=](sycl::id<1> idx) {
+                int i = idx[0];
+                // Update r_dev in parallel: r_dev = -alpha * Ap_dev + 1.0 * r_dev
+                r_dev[i] = -(*alpha_dev) * Ap_dev[i] + r_dev[i];
+                // Update x_dev in parallel: x_dev = alpha * p_dev + 1.0 * x_dev
+                x_dev[i] = (*alpha_dev) * p_dev[i] + x_dev[i];
+            });
         }).wait();
 
         dot_device(queue, r_dev, r_dev, size, rr_new_dev);
 
-        queue.submit([&](sycl::handler& cgh) {
-            cgh.single_task([=]() {
+        queue.memcpy(&rr_new, rr_new_dev, sizeof(double)); // Copy the result to host
+        queue.memcpy(rr_dev, rr_new_dev, sizeof(double)); // Update rr on device 
 
-                *beta_dev = *rr_new_dev / *rr_shared; // Update beta_dev
-                *rr_shared = *rr_new_dev; // Update rr_dev for the next iteration
-                *error_shared = std::sqrt(*rr_shared / *bb_shared);
+        queue.wait();
 
-            });
-        }).wait(); 
-
-        if (*error_shared < rel_error)
+        beta = rr_new / rr;
+        rr = rr_new;
+        error = std::sqrt(rr / bb);
+        if (error < rel_error)
             break; 
 
-        axpby_device(queue, 1.0, r_dev, beta_dev, p_dev, size); //TODO problea con l'1.0
+        axpby_device(queue, 1.0, r_dev, beta, p_dev, size);
     }
 
     // debugging
     if(num_iters <= max_iters)
     {
-        printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(*rr_shared / *bb_shared));
+        printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
     }
     else
     {
-        printf("Did not converge in %d iterations, relative error is %e\n", max_iters, std::sqrt(*rr_shared / *bb_shared));
+        printf("Did not converge in %d iterations, relative error is %e\n", max_iters, std::sqrt(rr / bb));
     }
 
 
@@ -220,12 +222,10 @@ void conjugate_gradients(sycl::queue &queue, const double *A_host, const double 
     sycl::free(r_dev, queue);
     sycl::free(p_dev, queue);
     sycl::free(Ap_dev, queue);
-    sycl::free(beta_dev, queue);
-    sycl::free(rr_shared, queue);
-    sycl::free(bb_shared, queue);
-    sycl::free(alpha_shared, queue);
-    sycl::free(error_shared, queue);
-    sycl::free(pAp_dot_shared, queue);
+    sycl::free(rr_dev, queue);
+    sycl::free(bb_dev, queue);
+    sycl::free(alpha_dev, queue);
+    sycl::free(pAp_dot_dev, queue);
 }
 
 
@@ -244,9 +244,7 @@ int main(int argc, char ** argv)
     int max_iters = 1000;
     double rel_error = 1e-9;
 
-    auto selector = sycl::default_selector{};
-    sycl::queue queue(selector);
-
+    auto queue = sycl::queue(sycl::default_selector_v);
     std::cout << "Running on " << queue.get_device().get_info<sycl::info::device::name>() << std::endl;
 
     if(argc > 1) input_file_matrix = argv[1];
@@ -318,6 +316,8 @@ int main(int argc, char ** argv)
     conjugate_gradients(queue, matrix, rhs, sol, size, max_iters, rel_error);
     printf("Done\n");
     printf("\n");
+
+    print_matrix(sol, size, 1);
 
     printf("Writing solution to file ...\n");
     bool success_write_sol = write_matrix_to_file(output_file_sol, sol, size, 1);
