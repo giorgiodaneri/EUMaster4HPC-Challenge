@@ -13,11 +13,10 @@ public:
     CGSolverACC(double *A, double *b, double *x, size_t size, int maxIterations, double tolerance) : CGSolver(A, b, x, size, maxIterations, tolerance)
     {
 #pragma acc enter data copyin(this[0 : 1])
-#pragma acc enter data copyin(A[0 : size * size])
+#pragma acc enter data copyin(A[0 : size * size]) 
     }
 
-    ~CGSolverACC(){
-// #pragma acc exit data delete (A[0 : size_ * size_])
+    ~CGSolverACC() override {
 #pragma acc exit data delete (this[0 : 1])
     };
 

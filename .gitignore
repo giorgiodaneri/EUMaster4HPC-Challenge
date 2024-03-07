@@ -2,8 +2,7 @@
 **/build/
 **/profilerData*
 .vscode/
+**/result*/
 *.o
 main*
 slurm*
-conjugate_gradients-main/random_spd_system
-conjugate_gradients-main/profile.mon

@@ -14,8 +14,14 @@ Then compile using the CUDA compiler nvcc with:
 make
 ```
 
-Then launch a batch job contaning the **runCG.sh** slurm batch script with: 
+Then launch a batch job contaning the **run.sh** slurm batch script with: 
 
 ``` bash
-sbatch runCG.sh
+sbatch run.sh
+```
+
+If you'd like to profile the application, you can use the powerful tool NVIDIA Nsight. 
+``` bash
+nsys profile --stats=true main ../../io/matrix.bin ../../io/rhs.bin ../../io/sol.bin
+cat slurm_file_id
 ```
