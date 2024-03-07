@@ -24,11 +24,10 @@ Emulation tests, validates, and debugs FPGA designs before hardware deployment. 
 
 **Standard Compilation:**
 
-    icpx -fsycl -fintelfpga main.cpp -o main.fpga_emu |& tee compilation.log
+    icpx -fsycl main.cpp -o main.fpga_emu |& tee compilation.log
 
 - `icpx`: Intel's DPC++/C++ Compiler.
 - `-fsycl`: Enables SYCL language support.
-- `-fintelfpga`: Enables FPGA optimizations and extensions for Intel devices.
 - `main.cpp`: Source file to compile.
 - `-o main.fpga_emu`: Specifies the output file for the compiled program.
 - `|& tee compilation.log`: Pipes both stdout and stderr to the `tee` command, which logs output to `compilation.log` and displays it on the screen.
