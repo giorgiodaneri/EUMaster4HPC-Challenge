@@ -19,3 +19,9 @@ Then launch a batch job contaning the **run.sh** slurm batch script with:
 ``` bash
 sbatch run.sh
 ```
+
+If you'd like to profile the application, you can use the powerful tool NVIDIA Nsight. 
+``` bash
+nsys profile --stats=true main ../../io/matrix.bin ../../io/rhs.bin ../../io/sol.bin
+cat slurm_file_id
+```

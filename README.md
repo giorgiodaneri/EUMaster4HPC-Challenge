@@ -37,14 +37,14 @@ Our code features several implementations, which leverage different programming 
 If you dont' want to bother with the process of compiling the programs in an interactive node, we set up some batch files scripts for automatic testing and performance evaluation. You can find them in the [batches folder](/conjugate_gradients-main/batches/) and they can be used in the login node. There are batch files for each implementation (i.e. batch_cuda). You can edit it to set the number of samples to be executed. 
 
 ``` bash
-    # Number of samples to take
-    NUM_SAMPLES=10
+# Number of samples to take
+NUM_SAMPLES=10
 ```
 
 Bear in mind that you should first generate the system by following the above commands. Then launch the script with
 
 ``` bash
-    sbatch batch_cuda.sh
+sbatch batch_cuda.sh
 ```
 
 If you'd like to use the interactive node and compile the program yourself, head over to the [test folder](/conjugate_gradients-main/test/) and choose one of the directiores corresponding to these implementations to run some tests. You will find a README in each one, just follow the instructions to compile and execute the code.
