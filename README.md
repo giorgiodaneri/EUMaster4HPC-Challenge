@@ -32,6 +32,7 @@ Our code features several implementations, which leverage different programming 
 - openMP + MPI hybrid to split the workload among different nodes 
 - openACC offloading of the gemv kernel to the GPU, single node. Integration of Intel MKL library
 - CUDA accelerator for single node GPU + CuBLAS library
+- SYCL FPGA implementation + oneMKL library
     
 ## Testing
 If you dont' want to bother with the process of compiling the programs in an interactive node, we set up some batch files scripts for automatic testing and performance evaluation. You can find them in the [batches folder](/conjugate_gradients-main/batches/) and they can be used in the login node. There are batch files for each implementation (i.e. batch_cuda). You can edit it to set the number of samples to be executed. 
