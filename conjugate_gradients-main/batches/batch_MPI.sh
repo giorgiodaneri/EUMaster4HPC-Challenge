@@ -13,6 +13,10 @@ BUILD_DIR="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/build/test/test
 MATRIX_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/io/matrix.bin"
 RHS_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/io/rhs.bin"
 SOLUTION_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/io/sol.bin"
+SAMPLE_PY_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/sample.py"
+
+# Number of samples to take
+NUM_SAMPLES=10
 
 module load CMake OpenMPI 
 
@@ -23,6 +27,9 @@ cd build
 cmake .. -DBUILD_MPI=ON
 make
 
+chmod +rx "$SAMPLE_PY_PATH"
+
 echo "--------------------------------------------------------------------------------"
 
-srun "$BUILD_DIR"/mainMPI_OpenMP "$MATRIX_PATH" "$RHS_PATH" "$SOLUTION_PATH"
+srun "$SAMPLE_PY_PATH" $NUM_SAMPLES "$BUILD_DIR"/mainMPI_OpenMP "$MATRIX_PATH" "$RHS_PATH" "$SOLUTION_PATH"
+
