@@ -1,4 +1,4 @@
-#!/bin/bash -l
+!/bin/bash -l
 #SBATCH --nodes=1                          # number of nodes
 #SBATCH --ntasks=1                         # number of tasks
 #SBATCH --ntasks-per-node=1                # number of tasks per node

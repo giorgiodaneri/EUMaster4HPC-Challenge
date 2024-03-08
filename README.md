@@ -50,4 +50,42 @@ sbatch batch_cuda.sh
 
 If you'd like to use the interactive node and compile the program yourself, head over to the [test folder](/conjugate_gradients-main/test/) and choose one of the directiores corresponding to these implementations to run some tests. You will find a README in each one, just follow the instructions to compile and execute the code.
 
+## Compilation with Cmake 
+
+Available for:
+- openMP version.
+- openMP + MPI hybrid version.
+- openACC version.
+
+For the compilation of the FPGA and CUDA version head over to the [test folder](/conjugate_gradients-main/test/) and follow the instructions there.
+
+### Configuration Options:
+
+- `DEBUG_MODE`: Toggle debug mode on or off. This option can help with debugging. The default setting is `OFF`.
+    - Usage: `-DDEBUG_MODE=ON`
+
+- `BUILD_MPI`: Enable the building of the MPI version.
+    - Usage: `-DBUILD_MPI=ON`
+
+- `BUILD_OMP`: Enable the building of the OpenMP version.
+    - Usage: `-DBUILD_OMP=ON`
+
+- `BUILD_OPENACC`: Enable the building of the OpenACC version.
+    - Usage: `-DBUILD_OPENACC=ON`
+
+- `BUILD_CUDA`: Enable the building of the CUDA version.
+    - Usage: `-DBUILD_CUDA=ON`
+
+- `BUILD_SERIAL`: Enable the building of the serial version. 
+    - Usage: `-DBUILD_SERIAL=ON`
+
+### Example Command
+
+To build the project with debug mode enabled and MPI support, navigate to the project's directory and run the following `cmake` command:
+
+    cmake -S /path/to/source -B /path/to/build -DDEBUG_MODE=ON -DBUILD_MPI=ON
+
+Adjust the options as necessary to fit your build requirements.
+
+
 

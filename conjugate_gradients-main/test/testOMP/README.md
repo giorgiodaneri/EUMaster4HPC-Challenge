@@ -21,7 +21,7 @@ cmake ..
 make
 ```
 
-YOu can configure the execution parameters in the **runCG.sh** slurm batch script, particularly the `--cpus-per-task` parameter, which is the number of openMP threads.
+You can configure the execution parameters in the **runCG.sh** slurm batch script, particularly the `--cpus-per-task` parameter, which is the number of openMP threads.
 
 ``` sh
 #!/bin/bash -l

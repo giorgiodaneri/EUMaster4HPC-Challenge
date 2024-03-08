@@ -124,7 +124,7 @@ void calculateMatrixPartition(size_t size, int world_size,
 
     int elements_per_row = size;
     int base_rows_per_process = size / world_size; // How many rows each process will get
-    int extra_elements = size % world_size; // If the number is not divisble we have a reminder of rows
+    int extra_elements = size % world_size; // If the number is not divisible we have a reminder of rows
     int current_element_index = 0;
     int current_row_displacement = 0;
 
@@ -162,15 +162,9 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     double alpha, beta, bb, rr, rr_new;
     int num_iters;
 
-    // Devide the matrix amoung the processes
+    // Divide the matrix among the processes
     MPI_Scatterv(A, number_element_per_partition, divide_at_index, MPI_DOUBLE, local_matrix,
                  number_element_per_partition[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    std::cout << "Process " << rank << " received matrix portion as 1D array:" << std::endl;
-    for(int i = 0; i < number_element_per_partition[rank]; i++) {
-        std::cout << local_matrix[i] << " ";
-    }
-    std::cout << std::endl;
 
     if(rank == 0) {
         r = new double[size];
@@ -182,19 +176,8 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
             p[i] = b[i];
         }
 
-        bb = dot(b, b, size); // TODO: consider to perform this on each process so that we can parellize rr_new
+        bb = dot(b, b, size);
         rr = bb;
-
-        std::cout << "Initial matrix (A) as 1D array:" << std::endl;
-        for(int i = 0; i < size*size; i++) { 
-        std::cout << A[i] << " ";
-        if((i + 1) % size == 0) std::cout << std::endl; 
-
-        std::cout << "Initial vector (b):" << std::endl;
-        for(int i = 0; i < size; i++) {
-        std::cout << b[i] << " ";
-        }
-        std::cout << std::endl;
     }
     }
 
@@ -205,19 +188,8 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
 
         // Perform matrix vector multiplication on each portion
         precA(local_matrix, p, local_result, rows_per_process_array[rank], size);
-
-        std::cout << "Process " << rank << " local result of precA:" << std::endl;
-        for(int i = 0; i < rows_per_process_array[rank]; i++) {
-            std::cout << local_result[i] << " ";
-        }
-        std::cout << std::endl;
-
-        // // TODO: Perform partial dot product
-        // local_residualNorm = dot(local_result, p + row_displacements[rank], rows_per_process_array[rank]);
-
-        // std::cout << "Process " << rank << " local dot product: " << local_residualNorm << std::endl;
         
-        // Gather the result of the moltplication in Ap (only on process 0)
+        // Gather the result of the multiplication in Ap (only on process 0)
         MPI_Gatherv(local_result, rows_per_process_array[rank], MPI_DOUBLE, Ap,
                     rows_per_process_array, row_displacements, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
@@ -226,11 +198,10 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
 
         // Perform other calculation on process 0
         if(rank == 0) {
-            // std::cout << "Final dot product: " << residualNorm << std::endl;
-            alpha = rr / dot(p, Ap, size); // TODO: Easy to parellilize 
+            alpha = rr / dot(p, Ap, size);
             axpby(alpha, p, 1.0, x, size);
             axpby(-alpha, Ap, 1.0, r, size);
-            rr_new = dot(r, r, size); // TODO: Consider performing dot product in parallel
+            rr_new = dot(r, r, size);
             beta = rr_new / rr; 
             rr = rr_new;
 

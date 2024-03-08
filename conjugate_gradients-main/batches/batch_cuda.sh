@@ -17,9 +17,6 @@ module load CUDA
 # Change directory
 make ../test/testCuda
 
-# Run make command
-# make
-
 SAMPLE_PY_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/sample.py"
 PROGRAM_PATH="$HOME/EUMaster4HPC-Challenge/conjugate_gradients-main/test/testCuda/main"
 

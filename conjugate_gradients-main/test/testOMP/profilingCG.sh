@@ -1,4 +1,4 @@
-#!/bin/bash -l
+!/bin/bash -l
 #SBATCH --cpus-per-task=32                # CORES per task
 #SBATCH --qos=default                      # SLURM qos
 #SBATCH --nodes=1                          # number of nodes

@@ -26,6 +26,7 @@ option(BUILD_OMP "Build the OpenMP version" OFF)
 option(BUILD_OPENACC "Build the OpenACC version" OFF)
 option(BUILD_SERIAL "Build the serial version" OFF)
 
+
 if(BUILD_MPI)
     add_subdirectory(test/testMPI)
 endif()

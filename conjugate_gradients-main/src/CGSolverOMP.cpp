@@ -32,32 +32,6 @@ void CGSolverOMP::axpby(double alpha, const double *x, double beta, double *y, s
     }
 }
 
-// TASK VERSION
-// void CGSolverOMP::precA(const double *A, const double *x, double *Ax, size_t size)
-// {
-// // #pragma omp parallel for
-// #pragma omp parallel
-//     {
-
-// #pragma omp single nowait
-//         {
-
-// #pragma omp taskloop nogroup
-//             for (size_t i = 0; i < size; i++)
-//             {
-//                 double y_val = 0.0;
-//                 // the following pragma is totally useless, why?
-// #pragma omp simd reduction(+ : y_val)
-//                 for (size_t j = 0; j < size; j++)
-//                 {
-//                     y_val += A[i * size + j] * x[j];
-//                 }
-//                 Ax[i] = y_val;
-//             }
-//         }
-//     }
-// }
-
 // PARALLEL LOOPS VERSION
 // the following pragma is useless
 // #pragma omp declare simd
@@ -117,9 +91,6 @@ void CGSolverOMP::solve()
 
     for (num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        // brainy way to compute A * p, need it for residual update and computation of alpha
-        // writes result directly in Ap
-        // is this some kind of obfuscation to make the code less readable???
         // gemv(1.0, A, p, 0.0, Ap, size, size);
         precA(A, p, Ap, size);
         // compute new alpha coefficient to guarantee optimal convergence rate
