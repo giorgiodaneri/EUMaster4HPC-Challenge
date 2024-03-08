@@ -179,7 +179,6 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
         bb = dot(b, b, size);
         rr = bb;
     }
-    }
 
     for(num_iters = 1; num_iters <= max_iters && continueLoop; num_iters++)
     {   
