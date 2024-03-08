@@ -66,26 +66,31 @@ For the compilation of the FPGA and CUDA version head over to the [test folder](
 
 - `BUILD_MPI`: Enable the building of the MPI version.
     - Usage: `-DBUILD_MPI=ON`
+    - Modules needed: `module load OpenMPI`
 
 - `BUILD_OMP`: Enable the building of the OpenMP version.
     - Usage: `-DBUILD_OMP=ON`
+    - Modules needed: `module load OpenBLAS`
 
 - `BUILD_OPENACC`: Enable the building of the OpenACC version.
     - Usage: `-DBUILD_OPENACC=ON`
-
-- `BUILD_CUDA`: Enable the building of the CUDA version.
-    - Usage: `-DBUILD_CUDA=ON`
+    - Modules needed: `module load intel`
 
 - `BUILD_SERIAL`: Enable the building of the serial version. 
-    - Usage: `-DBUILD_SERIAL=ON`
+    - Usage: `-DBUILD_SERIAL=ON -DCMAKE_CXX_COMPILER=icpx`.  Bear in mind that if you compile using this command you are setting the environment variable CXX_COMPILER to a different value. This may conflict with other builds. If you have problems while compiling the other implementations, be sure to add `-DCMAKE_CXX_COMPILER=gcc` when compiling to reset it. 
+    - Modules needed: `module load intel` 
+
+As for the CUDA implementation, you need to follow a different way since we didn't configure a CMakeFile for it. Please head over to [this folder](/conjugate_gradients-main/test/testCuda/) and follow the instructions.
 
 ### Example Command
 
 To build the project with debug mode enabled and MPI support, navigate to the project's directory and run the following `cmake` command:
 
-    cmake -S /path/to/source -B /path/to/build -DDEBUG_MODE=ON -DBUILD_MPI=ON
+``` bash
+    mkdir build
+    cmake -S /path/to/source -B build -DDEBUG_MODE=ON -DBUILD_MPI=ON
+    cd build
+    make
+```
 
-Adjust the options as necessary to fit your build requirements.
-
-
-
+Adjust the options as necessary to fit your build requirements. 
