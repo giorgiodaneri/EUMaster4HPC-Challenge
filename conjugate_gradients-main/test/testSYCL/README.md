@@ -32,8 +32,7 @@ Emulation tests, validates, and debugs FPGA designs before hardware deployment. 
 
     icpx -fsycl -DMKL_ILP64 -I${MKLROOT}/include main.cpp -L${MKLROOT}/lib/intel64 -lmkl_sycl -lmkl_intel_ilp64 -lmkl_tbb_thread -lmkl_core -lsycl -lOpenCL -ltbb -pthread -ldl -lm -o main.fpga_emu
 
-### Step 3b: Full Compilation
-!THIS IS NOT WORKING!
+### Step 3b: Full Compilation - NOT AVAILABLE
 This step involves several hours of compilation. Pre-validation through emulation is recommended. Using -Xsfast-compile decreases compile time at the expense of final performance.
 
 **Standard Compilation:**
