@@ -317,8 +317,6 @@ int main(int argc, char ** argv)
     printf("Done\n");
     printf("\n");
 
-    print_matrix(sol, size, 1);
-
     printf("Writing solution to file ...\n");
     bool success_write_sol = write_matrix_to_file(output_file_sol, sol, size, 1);
     if(!success_write_sol)
