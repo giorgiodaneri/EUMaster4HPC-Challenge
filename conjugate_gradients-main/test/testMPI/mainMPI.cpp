@@ -155,8 +155,6 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     double* local_result = new double[rows_per_process_array[rank]]; // To store the result of the matrix vector multiplication
     double* p = new double[size]; // Each process has the entire vector
     double* Ap = nullptr; // Final result of the vector matrix multiplication
-    double local_residualNorm = 0.0; // Each process will calculate the first dot product 
-    double residualNorm = 0.0; // Here the final dot product will be reduced
     bool continueLoop = true; // To make all processes exit the loop
     double* r = nullptr; 
     double alpha, beta, bb, rr, rr_new;
@@ -185,14 +183,14 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
         // Broadcast the new vector
         MPI_Bcast(p, size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        // Perform matrix-vector multiplication on each portion
+        // Perform matrix vector multiplication on each portion
         precA(local_matrix, p, local_result, rows_per_process_array[rank], size);
         
         // Gather the result of the multiplication in Ap (only on process 0)
         MPI_Gatherv(local_result, rows_per_process_array[rank], MPI_DOUBLE, Ap,
                     rows_per_process_array, row_displacements, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        // Perform other calculations on process 0
+        // Perform other calculation on process 0
         if(rank == 0) {
             alpha = rr / dot(p, Ap, size);
             axpby(alpha, p, 1.0, x, size);
